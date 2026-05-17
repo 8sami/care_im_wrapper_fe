@@ -1,1 +1,1 @@
-care_im_wrapper - Care FE Plugin
+care_im_wrapper_fe - Care FE Plugin

@@ -7,6 +7,10 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import reactPlugin from "eslint-plugin-react";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
 import globals from "globals";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const tsconfigRootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default [
   // Base configuration
@@ -37,7 +41,8 @@ export default [
       },
       parser: tsParser,
       parserOptions: {
-        project: "./tsconfig.app.json",
+        project: ["./tsconfig.app.json", "./tsconfig.node.json"],
+        tsconfigRootDir,
       },
     },
     settings: {
@@ -59,7 +64,8 @@ export default [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: "./tsconfig.app.json",
+        project: ["./tsconfig.app.json", "./tsconfig.node.json"],
+        tsconfigRootDir,
       },
     },
     rules: {

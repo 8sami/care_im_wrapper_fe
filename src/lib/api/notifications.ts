@@ -27,6 +27,11 @@ export const notificationApi = apiRoutes({
     method: HttpMethod.POST,
     TResponse: {} as NotificationTemplate,
   },
+  templates_sync: {
+    path: `${BASE}/notification-templates/sync/`,
+    method: HttpMethod.POST,
+    TResponse: {} as { detail: string },
+  },
   template_set_variable_mapping: {
     path: `${BASE}/notification-templates/{id}/set_variable_mapping/`,
     method: HttpMethod.POST,

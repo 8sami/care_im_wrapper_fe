@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { toast } from "sonner";
 
 import { notificationApi } from "@/lib/api/notifications";
@@ -14,7 +14,14 @@ import {
 import CareIcon from "@/CAREUI/icons/CareIcon";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -30,6 +37,7 @@ import {
   CardGridSkeleton,
   TableSkeleton,
 } from "@/components/Common/SkeletonLoading";
+import TemplateVariablesSheet from "@/components/Notifications/TemplateVariablesSheet";
 
 import useFilters from "@/hooks/useFilters";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -41,6 +49,8 @@ export default function NotificationTemplatesPage() {
   const { qParams, resultsPerPage, Pagination } = useFilters({
     limit: 15,
   });
+  const [activeTemplate, setActiveTemplate] =
+    useState<NotificationTemplate | null>(null);
 
   const canManage = hasPermission(
     "can_manage_notification_template",
@@ -76,10 +86,42 @@ export default function NotificationTemplatesPage() {
     },
   });
 
+  const syncMutation = useMutation({
+    mutationFn: () =>
+      mutate(notificationApi.templates_sync, { silent: true })(undefined),
+    onSuccess: () => {
+      toast.success(t("template_sync_queued"));
+    },
+    onError: (err) => {
+      const message =
+        err instanceof HttpError
+          ? ((err.cause?.detail as string) ?? t("template_sync_failed"))
+          : t("template_sync_failed");
+      toast.error(message);
+    },
+  });
+
   const templates = data?.results ?? [];
 
   return (
-    <Page title={t("notification_templates")}>
+    <Page
+      title={t("notification_templates")}
+      options={
+        canManage && (
+          <Button
+            variant="outline"
+            disabled={syncMutation.isPending}
+            onClick={() => syncMutation.mutate()}
+          >
+            <CareIcon
+              icon="l-sync"
+              className={syncMutation.isPending ? "animate-spin" : undefined}
+            />
+            {t("sync_templates")}
+          </Button>
+        )
+      }
+    >
       {isLoading ? (
         <>
           <div className="mt-4 grid gap-4 md:hidden">
@@ -111,6 +153,7 @@ export default function NotificationTemplatesPage() {
                 template={template}
                 canManage={canManage}
                 onToggle={() => toggleMutation.mutate(template.id)}
+                onEditVariables={() => setActiveTemplate(template)}
               />
             ))}
           </div>
@@ -137,6 +180,9 @@ export default function NotificationTemplatesPage() {
                   </TableHead>
                   <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
                     {t("active")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("actions")}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -190,6 +236,24 @@ export default function NotificationTemplatesPage() {
                         </Badge>
                       )}
                     </TableCell>
+                    <TableCell className="px-6 py-3">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <CareIcon icon="l-ellipsis-v" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => setActiveTemplate(template)}
+                          >
+                            {canManage
+                              ? t("edit_variables")
+                              : t("view_variables")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -199,6 +263,12 @@ export default function NotificationTemplatesPage() {
       )}
 
       {Pagination({ totalCount: data?.count ?? 0 })}
+
+      <TemplateVariablesSheet
+        template={activeTemplate}
+        canManage={canManage}
+        onOpenChange={(open) => !open && setActiveTemplate(null)}
+      />
     </Page>
   );
 }
@@ -207,10 +277,12 @@ function TemplateCard({
   template,
   canManage,
   onToggle,
+  onEditVariables,
 }: {
   template: NotificationTemplate;
   canManage: boolean;
   onToggle: () => void;
+  onEditVariables: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -220,13 +292,27 @@ function TemplateCard({
           <div className="text-sm font-semibold">{template.name}</div>
           <div className="font-mono text-xs text-gray-500">{template.slug}</div>
         </div>
-        {canManage ? (
-          <Switch checked={template.is_active} onCheckedChange={onToggle} />
-        ) : (
-          <Badge variant={template.is_active ? "green" : "secondary"}>
-            {template.is_active ? t("active") : t("inactive")}
-          </Badge>
-        )}
+        <div className="flex items-center gap-1">
+          {canManage ? (
+            <Switch checked={template.is_active} onCheckedChange={onToggle} />
+          ) : (
+            <Badge variant={template.is_active ? "green" : "secondary"}>
+              {template.is_active ? t("active") : t("inactive")}
+            </Badge>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <CareIcon icon="l-ellipsis-v" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onEditVariables}>
+                {canManage ? t("edit_variables") : t("view_variables")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <Badge variant="secondary">{template.provider}</Badge>

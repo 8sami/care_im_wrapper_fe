@@ -4,6 +4,8 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { defineConfig } from "vite";
 
+import { treeShakeCareIcons } from "./plugins/treeShakeCareIcons";
+
 export default defineConfig({
   envPrefix: "REACT_",
   plugins: [
@@ -24,6 +26,7 @@ export default defineConfig({
     }),
     tailwindcss(),
     react(),
+    treeShakeCareIcons(),
   ],
   build: {
     target: "esnext",

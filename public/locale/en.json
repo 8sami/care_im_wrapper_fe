@@ -1,4 +1,10 @@
 {
   "care_im_wrapper_fe_description": "Care IM Wrapper FE has been successfully initialized.",
+  "no_permission_to_view_page": "You don't have permission to view this page",
+  "notification_templates": "Notification templates",
+  "notification_templates_coming_soon": "Template management is coming soon.",
+  "notifications": "Notifications",
+  "notifications_coming_soon": "Event management is coming soon.",
+  "test_toast": "Test toast",
   "welcome_to_care_im_wrapper_fe": "Welcome to Care IM Wrapper FE"
 }

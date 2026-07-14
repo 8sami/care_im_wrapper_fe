@@ -1,5 +1,6 @@
 {
   "actions": "Actions",
+  "activate": "Activate",
   "active": "Active",
   "all": "All",
   "all_triggers": "All triggers",
@@ -8,6 +9,7 @@
   "authentication": "Authentication",
   "auto_refresh": "Auto refresh",
   "back_to_notifications": "Back to Notifications",
+  "by": "by",
   "cancel": "Cancel",
   "care_im_wrapper_fe_description": "Care IM Wrapper FE has been successfully initialized.",
   "category": "Category",
@@ -17,6 +19,7 @@
   "create_failed": "Failed to create notification",
   "created_on": "Created",
   "creating": "Creating…",
+  "deactivate": "Deactivate",
   "delivered": "Delivered",
   "description": "Description",
   "disabled": "Disabled",

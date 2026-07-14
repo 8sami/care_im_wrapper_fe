@@ -69,14 +69,31 @@ export type NotificationDeliveryStatus =
   | "read"
   | "failed";
 
+export type NotificationRecipientType = "patient" | "user";
+
+export interface NotificationStatusEvent {
+  state: NotificationDeliveryStatus;
+  created_date: string;
+}
+
 export interface NotificationRecipient {
   id: string;
   event_id: string;
   recipient_phone: string;
+  recipient_name: string | null;
+  recipient_type: NotificationRecipientType | null;
   provider: string;
   tracking_id: string | null;
   latest_status: NotificationDeliveryStatus | null;
+  status_history: NotificationStatusEvent[];
   created_date: string;
+}
+
+export interface NotificationEventCreatedBy {
+  id: string;
+  first_name: string;
+  last_name: string;
+  username: string;
 }
 
 export interface NotificationEvent {
@@ -87,6 +104,8 @@ export interface NotificationEvent {
   description: string | null;
   is_urgent: boolean;
   variable_values: Record<string, unknown> | null;
+  // Staff member who created a manual event; null for automatic signal-triggered events.
+  created_by: NotificationEventCreatedBy | null;
   created_date: string;
   recipients: NotificationRecipient[];
 }

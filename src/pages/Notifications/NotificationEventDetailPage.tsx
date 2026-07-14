@@ -10,6 +10,7 @@ import { HttpError, mutate, query } from "@/lib/request";
 import {
   NOTIFICATION_STATUS_BADGE,
   NotificationDeliveryStatus,
+  NotificationRecipient,
   TRIGGER_TYPE_BADGE,
 } from "@/lib/types/notifications";
 
@@ -56,6 +57,11 @@ const STATUS_ORDER: (NotificationDeliveryStatus | "pending")[] = [
   "read",
   "failed",
 ];
+
+function latestStatusDate(recipient: NotificationRecipient) {
+  const latest = recipient.status_history.at(-1);
+  return latest?.created_date ?? recipient.created_date;
+}
 
 export default function NotificationEventDetailPage({
   eventId,
@@ -175,6 +181,13 @@ export default function NotificationEventDetailPage({
           )}
           <p className="text-xs text-gray-500">
             {t("created_on")} {formatDateTime(event.created_date)}
+            {event.created_by && (
+              <>
+                {" "}
+                · {t("by")} {event.created_by.first_name}{" "}
+                {event.created_by.last_name}
+              </>
+            )}
           </p>
         </div>
 
@@ -276,7 +289,7 @@ export default function NotificationEventDetailPage({
                 <Card key={recipient.id} className="p-3">
                   <div className="mb-1 flex items-center justify-between">
                     <span className="text-sm font-medium">
-                      {recipient.recipient_phone}
+                      {recipient.recipient_name ?? recipient.recipient_phone}
                     </span>
                     <Badge
                       variant={
@@ -288,12 +301,19 @@ export default function NotificationEventDetailPage({
                       {t(recipient.latest_status ?? "pending")}
                     </Badge>
                   </div>
+                  {recipient.recipient_name && (
+                    <div className="mb-1 text-xs text-gray-500">
+                      {recipient.recipient_phone}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <span>{recipient.provider}</span>
                     <TooltipComponent
-                      content={formatDateTime(recipient.created_date)}
+                      content={formatDateTime(latestStatusDate(recipient))}
                     >
-                      <span>{formatRelativeTime(recipient.created_date)}</span>
+                      <span>
+                        {formatRelativeTime(latestStatusDate(recipient))}
+                      </span>
                     </TooltipComponent>
                   </div>
                 </Card>
@@ -304,29 +324,35 @@ export default function NotificationEventDetailPage({
             <div className="hidden min-w-0 overflow-x-auto rounded-lg bg-white shadow-sm md:block">
               <Table className="min-w-full divide-y divide-gray-200">
                 <TableHeader className="bg-gray-100 text-gray-700">
-                  <TableRow>
-                    <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      {t("recipient")}
-                    </TableHead>
-                    <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      {t("channel")}
-                    </TableHead>
-                    <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      {t("status")}
-                    </TableHead>
-                    <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      {t("tracking_id")}
-                    </TableHead>
-                    <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      {t("when")}
-                    </TableHead>
-                  </TableRow>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("recipient")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("channel")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("status")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("tracking_id")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("when")}
+                  </TableHead>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-200 bg-white">
                   {recipients.map((recipient) => (
                     <TableRow key={recipient.id} className="hover:bg-gray-50">
-                      <TableCell className="px-6 py-3 text-sm text-gray-950">
-                        {recipient.recipient_phone}
+                      <TableCell className="px-6 py-3">
+                        <div className="text-sm text-gray-950">
+                          {recipient.recipient_name ??
+                            recipient.recipient_phone}
+                        </div>
+                        {recipient.recipient_name && (
+                          <div className="text-xs text-gray-500">
+                            {recipient.recipient_phone}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="px-6 py-3">
                         <Badge variant="secondary">{recipient.provider}</Badge>
@@ -362,10 +388,10 @@ export default function NotificationEventDetailPage({
                       </TableCell>
                       <TableCell className="px-6 py-3">
                         <TooltipComponent
-                          content={formatDateTime(recipient.created_date)}
+                          content={formatDateTime(latestStatusDate(recipient))}
                         >
                           <span className="text-xs text-gray-500">
-                            {formatRelativeTime(recipient.created_date)}
+                            {formatRelativeTime(latestStatusDate(recipient))}
                           </span>
                         </TooltipComponent>
                       </TableCell>

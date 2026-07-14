@@ -22,7 +22,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -162,33 +161,35 @@ export default function NotificationTemplatesPage() {
           <div className="mt-4 hidden min-w-0 overflow-x-auto rounded-lg bg-white shadow-sm md:block">
             <Table className="min-w-full divide-y divide-gray-200">
               <TableHeader className="bg-gray-100 text-gray-700">
-                <TableRow>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("name")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("channel")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("category")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("approval")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("language")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("active")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("actions")}
-                  </TableHead>
-                </TableRow>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                  {t("name")}
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                  {t("channel")}
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                  {t("category")}
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                  {t("approval")}
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                  {t("language")}
+                </TableHead>
+                <TableHead className="px-6 py-3 text-right text-xs font-medium tracking-wider uppercase">
+                  {t("actions")}
+                </TableHead>
               </TableHeader>
               <TableBody className="divide-y divide-gray-200 bg-white">
                 {templates.map((template) => (
-                  <TableRow key={template.id} className="hover:bg-gray-50">
+                  <TableRow
+                    key={template.id}
+                    className={
+                      template.is_active
+                        ? "hover:bg-gray-50"
+                        : "opacity-50 hover:bg-gray-50"
+                    }
+                  >
                     <TableCell className="px-6 py-3">
                       <div className="text-sm font-semibold text-gray-950">
                         {template.name}
@@ -219,24 +220,7 @@ export default function NotificationTemplatesPage() {
                     <TableCell className="px-6 py-3 text-sm text-gray-500">
                       {template.language_code ?? "—"}
                     </TableCell>
-                    <TableCell className="px-6 py-3">
-                      {canManage ? (
-                        <Switch
-                          checked={template.is_active}
-                          disabled={toggleMutation.isPending}
-                          onCheckedChange={() =>
-                            toggleMutation.mutate(template.id)
-                          }
-                        />
-                      ) : (
-                        <Badge
-                          variant={template.is_active ? "green" : "secondary"}
-                        >
-                          {template.is_active ? t("active") : t("inactive")}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="px-6 py-3">
+                    <TableCell className="px-6 py-3 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
@@ -251,6 +235,16 @@ export default function NotificationTemplatesPage() {
                               ? t("edit_variables")
                               : t("view_variables")}
                           </DropdownMenuItem>
+                          {canManage && (
+                            <DropdownMenuItem
+                              disabled={toggleMutation.isPending}
+                              onClick={() => toggleMutation.mutate(template.id)}
+                            >
+                              {template.is_active
+                                ? t("deactivate")
+                                : t("activate")}
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -286,20 +280,13 @@ function TemplateCard({
 }) {
   const { t } = useTranslation();
   return (
-    <Card className="p-4">
+    <Card className={template.is_active ? "p-4" : "p-4 opacity-50"}>
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
           <div className="text-sm font-semibold">{template.name}</div>
           <div className="font-mono text-xs text-gray-500">{template.slug}</div>
         </div>
         <div className="flex items-center gap-1">
-          {canManage ? (
-            <Switch checked={template.is_active} onCheckedChange={onToggle} />
-          ) : (
-            <Badge variant={template.is_active ? "green" : "secondary"}>
-              {template.is_active ? t("active") : t("inactive")}
-            </Badge>
-          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -310,6 +297,11 @@ function TemplateCard({
               <DropdownMenuItem onClick={onEditVariables}>
                 {canManage ? t("edit_variables") : t("view_variables")}
               </DropdownMenuItem>
+              {canManage && (
+                <DropdownMenuItem onClick={onToggle}>
+                  {template.is_active ? t("deactivate") : t("activate")}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -61,7 +61,6 @@ import {
 
 import useFacilityAccessGuard from "@/hooks/useFacilityAccessGuard";
 import useFilters from "@/hooks/useFilters";
-import useNotificationTemplates from "@/hooks/useNotificationTemplates";
 import useNotificationTriggers from "@/hooks/useNotificationTriggers";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -121,7 +120,6 @@ export default function NotificationEventsPage() {
       limit: 15,
     });
   const { triggers, triggersById } = useNotificationTriggers();
-  const { templatesById } = useNotificationTemplates();
   const [dispatchTarget, setDispatchTarget] =
     useState<NotificationEvent | null>(null);
 
@@ -252,10 +250,6 @@ export default function NotificationEventsPage() {
                 event={event}
                 triggerName={triggersById.get(event.trigger_id)?.name}
                 triggerType={triggersById.get(event.trigger_id)?.trigger_type}
-                templateName={templatesById.get(event.template_id)?.name}
-                templateProvider={
-                  templatesById.get(event.template_id)?.provider
-                }
                 canDispatch={canDispatch}
                 onDispatch={() => setDispatchTarget(event)}
                 onView={() => navigate(`${baseUrl}/${event.id}`)}
@@ -264,36 +258,27 @@ export default function NotificationEventsPage() {
           </div>
           {/* Desktop: table */}
           <div className="hidden min-w-0 overflow-x-auto rounded-lg bg-white shadow-sm md:block">
-            <Table className="min-w-full divide-y divide-gray-200">
+            <Table className="min-w-full">
               <TableHeader className="bg-gray-100 text-gray-700">
-                <TableRow>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("title")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("trigger")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("template")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("recipients")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("urgent")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("when")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-right text-xs font-medium tracking-wider uppercase">
-                    {t("actions")}
-                  </TableHead>
-                </TableRow>
+                <TableHead className="w-2/5 px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                  {t("title")}
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                  {t("trigger")}
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                  {t("status")}
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                  {t("when")}
+                </TableHead>
+                <TableHead className="px-6 py-3 text-right text-xs font-medium tracking-wider uppercase">
+                  {t("actions")}
+                </TableHead>
               </TableHeader>
               <TableBody className="divide-y divide-gray-200 bg-white">
                 {events.map((event) => {
                   const trigger = triggersById.get(event.trigger_id);
-                  const template = templatesById.get(event.template_id);
                   const pendingCount = event.recipients.filter(
                     (r) => r.latest_status === null,
                   ).length;
@@ -303,15 +288,18 @@ export default function NotificationEventsPage() {
                       className="cursor-pointer hover:bg-gray-50"
                       onClick={() => navigate(`${baseUrl}/${event.id}`)}
                     >
-                      <TableCell className="px-6 py-3">
+                      <TableCell className="max-w-0 px-6 py-3">
                         <div
-                          className="max-w-xs truncate text-sm font-semibold text-gray-950"
+                          className="truncate text-sm font-semibold text-gray-950"
                           title={event.title}
                         >
                           {event.title}
                         </div>
                         {event.description && (
-                          <div className="max-w-xs truncate text-xs text-gray-500">
+                          <div
+                            className="truncate text-xs text-gray-500"
+                            title={event.description}
+                          >
                             {event.description}
                           </div>
                         )}
@@ -328,28 +316,7 @@ export default function NotificationEventsPage() {
                         )}
                       </TableCell>
                       <TableCell className="px-6 py-3">
-                        {template ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-700">
-                              {template.name}
-                            </span>
-                            <Badge variant="secondary">
-                              {template.provider}
-                            </Badge>
-                          </div>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell className="px-6 py-3">
                         <RecipientStatusSummary recipients={event.recipients} />
-                      </TableCell>
-                      <TableCell className="px-6 py-3">
-                        {event.is_urgent ? (
-                          <Badge variant="danger">{t("urgent")}</Badge>
-                        ) : (
-                          "—"
-                        )}
                       </TableCell>
                       <TableCell className="px-6 py-3">
                         <TooltipComponent
@@ -435,8 +402,6 @@ function NotificationEventCard({
   event,
   triggerName,
   triggerType,
-  templateName,
-  templateProvider,
   canDispatch,
   onDispatch,
   onView,
@@ -444,8 +409,6 @@ function NotificationEventCard({
   event: NotificationEvent;
   triggerName?: string;
   triggerType?: keyof typeof TRIGGER_TYPE_BADGE;
-  templateName?: string;
-  templateProvider?: string;
   canDispatch: boolean;
   onDispatch: () => void;
   onView: () => void;
@@ -458,10 +421,17 @@ function NotificationEventCard({
   return (
     <Card className="p-4 shadow-sm">
       <div className="mb-2 flex items-start justify-between gap-2">
-        <div>
-          <div className="text-sm font-semibold">{event.title}</div>
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold" title={event.title}>
+            {event.title}
+          </div>
           {event.description && (
-            <div className="text-xs text-gray-500">{event.description}</div>
+            <div
+              className="truncate text-xs text-gray-500"
+              title={event.description}
+            >
+              {event.description}
+            </div>
           )}
         </div>
         <TooltipComponent content={formatDateTime(event.created_date)}>
@@ -474,14 +444,7 @@ function NotificationEventCard({
         {triggerName && triggerType && (
           <Badge variant={TRIGGER_TYPE_BADGE[triggerType]}>{triggerName}</Badge>
         )}
-        {templateProvider && (
-          <Badge variant="secondary">{templateProvider}</Badge>
-        )}
-        {event.is_urgent && <Badge variant="danger">{t("urgent")}</Badge>}
       </div>
-      {templateName && (
-        <div className="mb-2 text-xs text-gray-500">{templateName}</div>
-      )}
       <div className="mb-3">
         <RecipientStatusSummary recipients={event.recipients} />
       </div>

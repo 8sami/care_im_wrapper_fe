@@ -51,7 +51,7 @@ export default function RecipientPicker({
     <div className="space-y-2">
       <Command
         shouldFilter={false}
-        className="overflow-hidden rounded-md border border-gray-300 focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500"
+        className="overflow-hidden rounded-md border border-gray-300 focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500 divide-gray-300"
       >
         <CommandInput
           placeholder={placeholder}
@@ -61,9 +61,11 @@ export default function RecipientPicker({
         />
         <CommandList>
           {isSearching ? (
-            <div className="p-4 text-sm text-gray-500">{t("searching")}</div>
+            <div className="cursor-default p-4 text-sm text-gray-500">
+              {t("searching")}
+            </div>
           ) : searchTerm.length < 2 ? (
-            <div className="p-4 text-sm text-gray-500">
+            <div className="cursor-default p-4 text-sm text-gray-500">
               {t("start_typing_to_search")}
             </div>
           ) : availableOptions.length === 0 ? (
@@ -76,7 +78,7 @@ export default function RecipientPicker({
                   value={option.id}
                   onSelect={() => onSelect(option)}
                 >
-                  <div className="flex flex-col">
+                  <div className="cursor-pointer flex flex-col">
                     <span className="text-sm">{option.label}</span>
                     {option.sublabel && (
                       <span className="text-xs text-gray-500">

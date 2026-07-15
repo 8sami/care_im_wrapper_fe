@@ -91,6 +91,8 @@ export type NotificationRecipientType = "patient" | "user";
 export interface NotificationStatusEvent {
   state: NotificationDeliveryStatus;
   created_date: string;
+  // Raw provider error body or dispatch exception on "failed"; null on normal transitions.
+  payload: Record<string, unknown> | null;
 }
 
 export interface NotificationRecipient {

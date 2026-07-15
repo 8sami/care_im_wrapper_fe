@@ -29,6 +29,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -63,6 +70,14 @@ function latestStatusDate(recipient: NotificationRecipient) {
   return latest?.created_date ?? recipient.created_date;
 }
 
+// A dispatch failure and a later provider-reported failure each write their own row, so a
+// recipient can have several. Rows predating failure-payload capture have none.
+function failureDetails(recipient: NotificationRecipient) {
+  return recipient.status_history.filter(
+    (status) => status.state === "failed" && status.payload,
+  );
+}
+
 export default function NotificationEventDetailPage({
   eventId,
 }: {
@@ -76,6 +91,8 @@ export default function NotificationEventDetailPage({
   const [showVariables, setShowVariables] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [confirmDispatch, setConfirmDispatch] = useState(false);
+  const [errorRecipient, setErrorRecipient] =
+    useState<NotificationRecipient | null>(null);
 
   const { qParams, resultsPerPage, Pagination } = useFilters({ limit: 10 });
 
@@ -294,15 +311,27 @@ export default function NotificationEventDetailPage({
                     <span className="text-sm font-medium">
                       {recipient.recipient_name ?? recipient.recipient_phone}
                     </span>
-                    <Badge
-                      variant={
-                        NOTIFICATION_STATUS_BADGE[
-                          recipient.latest_status ?? "pending"
-                        ]
-                      }
-                    >
-                      {t(recipient.latest_status ?? "pending")}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={
+                          NOTIFICATION_STATUS_BADGE[
+                            recipient.latest_status ?? "pending"
+                          ]
+                        }
+                      >
+                        {t(recipient.latest_status ?? "pending")}
+                      </Badge>
+                      {failureDetails(recipient).length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0 text-xs text-red-600"
+                          onClick={() => setErrorRecipient(recipient)}
+                        >
+                          {t("see_error")}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   {recipient.recipient_name && (
                     <div className="mb-1 text-xs text-gray-500">
@@ -363,15 +392,31 @@ export default function NotificationEventDetailPage({
                         <Badge variant="secondary">{recipient.provider}</Badge>
                       </TableCell>
                       <TableCell className="px-6 py-3">
-                        <Badge
-                          variant={
-                            NOTIFICATION_STATUS_BADGE[
-                              recipient.latest_status ?? "pending"
-                            ]
-                          }
-                        >
-                          {t(recipient.latest_status ?? "pending")}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={
+                              NOTIFICATION_STATUS_BADGE[
+                                recipient.latest_status ?? "pending"
+                              ]
+                            }
+                          >
+                            {t(recipient.latest_status ?? "pending")}
+                          </Badge>
+                          {failureDetails(recipient).length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-0 text-xs text-red-600"
+                              onClick={() => setErrorRecipient(recipient)}
+                            >
+                              <CareIcon
+                                icon="l-info-circle"
+                                className="size-3"
+                              />
+                              {t("see_error")}
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="px-6 py-3 font-mono text-xs">
                         {recipient.tracking_id ? (
@@ -410,6 +455,55 @@ export default function NotificationEventDetailPage({
 
         {Pagination({ totalCount: recipientsData?.count ?? 0 })}
       </div>
+
+      <Dialog
+        open={!!errorRecipient}
+        onOpenChange={(open) => !open && setErrorRecipient(null)}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("delivery_error")}</DialogTitle>
+            <DialogDescription>
+              {t("delivery_error_description", {
+                recipient:
+                  errorRecipient?.recipient_name ??
+                  errorRecipient?.recipient_phone ??
+                  "",
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          {errorRecipient && (
+            <div className="max-h-[60vh] space-y-4 overflow-y-auto">
+              {failureDetails(errorRecipient).map((status) => (
+                <div key={status.created_date}>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="text-xs text-gray-500">
+                      {formatDateTime(status.created_date)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 text-xs"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          JSON.stringify(status.payload, null, 2),
+                        );
+                        toast.success(t("copied_to_clipboard"));
+                      }}
+                    >
+                      <CareIcon icon="l-copy" className="size-3" />
+                      {t("copy")}
+                    </Button>
+                  </div>
+                  <pre className="overflow-x-auto rounded bg-gray-900 p-3 font-mono text-xs whitespace-pre-wrap text-gray-100">
+                    {JSON.stringify(status.payload, null, 2)}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmDispatch} onOpenChange={setConfirmDispatch}>
         <AlertDialogContent>

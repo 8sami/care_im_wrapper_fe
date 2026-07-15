@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { navigate } from "raviger";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -35,13 +35,12 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
 import Page from "@/components/Common/Page";
-import RecipientPicker, {
-  RecipientOption,
-} from "@/components/Notifications/RecipientPicker";
+import RecipientPicker from "@/components/Notifications/RecipientPicker";
 
 import useFacilityAccessGuard from "@/hooks/useFacilityAccessGuard";
 import useNotificationTemplates from "@/hooks/useNotificationTemplates";
 import useNotificationTriggers from "@/hooks/useNotificationTriggers";
+import useRecipientSearch from "@/hooks/useRecipientSearch";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export default function NotificationCreateEventPage() {
@@ -54,34 +53,22 @@ export default function NotificationCreateEventPage() {
   const manualTriggers = triggers.filter((tr) => tr.trigger_type === "manual");
   const activeTemplates = templates.filter((tpl) => tpl.is_active);
 
-  const [selectedPatients, setSelectedPatients] = useState<RecipientOption[]>(
-    [],
-  );
-  const [selectedStaff, setSelectedStaff] = useState<RecipientOption[]>([]);
-  const [patientSearch, setPatientSearch] = useState("");
-  const [staffSearch, setStaffSearch] = useState("");
   const [recipientsError, setRecipientsError] = useState<string | null>(null);
 
-  const { data: patientResults, isFetching: isPatientSearching } = useQuery({
-    queryKey: ["patient-search", patientSearch],
-    queryFn: query.debounced(patientApi.list, {
-      queryParams: { name: patientSearch, limit: 10 },
-    }),
-    enabled: patientSearch.trim().length >= 2,
-  });
-
-  const { data: staffResults, isFetching: isStaffSearching } = useQuery({
-    queryKey: ["staff-search", staffSearch],
-    queryFn: query.debounced(userApi.list, {
-      queryParams: { search: staffSearch, limit: 10 },
-    }),
-    enabled: staffSearch.trim().length >= 2,
-  });
-
-  const patientOptions: RecipientOption[] = (patientResults?.results ?? []).map(
+  const patients = useRecipientSearch(
+    "patient-search",
+    (search) =>
+      query.debounced(patientApi.list, {
+        queryParams: { name: search, limit: 10 },
+      }),
     (p) => ({ id: p.id, label: p.name, sublabel: p.phone_number }),
   );
-  const staffOptions: RecipientOption[] = (staffResults?.results ?? []).map(
+  const staff = useRecipientSearch(
+    "staff-search",
+    (search) =>
+      query.debounced(userApi.list, {
+        queryParams: { search, limit: 10 },
+      }),
     (u) => ({
       id: u.id,
       label: `${u.first_name} ${u.last_name}`.trim() || u.username,
@@ -126,7 +113,7 @@ export default function NotificationCreateEventPage() {
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    if (selectedPatients.length === 0 && selectedStaff.length === 0) {
+    if (patients.selected.length === 0 && staff.selected.length === 0) {
       setRecipientsError(t("at_least_one_recipient_required"));
       return;
     }
@@ -137,8 +124,8 @@ export default function NotificationCreateEventPage() {
       is_urgent: values.is_urgent,
       trigger_slug: values.trigger_slug,
       template_slug: values.template_slug,
-      recipient_patient_ids: selectedPatients.map((p) => p.id),
-      recipient_user_ids: selectedStaff.map((s) => s.id),
+      recipient_patient_ids: patients.selected.map((p) => p.id),
+      recipient_user_ids: staff.selected.map((s) => s.id),
     });
   };
 
@@ -254,36 +241,26 @@ export default function NotificationCreateEventPage() {
                 <p className="mb-1.5 text-xs text-gray-600">{t("patients")}</p>
                 <RecipientPicker
                   placeholder={t("search_patients")}
-                  searchTerm={patientSearch}
-                  onSearchTermChange={setPatientSearch}
-                  options={patientOptions}
-                  isSearching={isPatientSearching}
-                  selected={selectedPatients}
-                  onSelect={(option) =>
-                    setSelectedPatients((prev) => [...prev, option])
-                  }
-                  onRemove={(id) =>
-                    setSelectedPatients((prev) =>
-                      prev.filter((p) => p.id !== id),
-                    )
-                  }
+                  searchTerm={patients.searchTerm}
+                  onSearchTermChange={patients.setSearchTerm}
+                  options={patients.options}
+                  isSearching={patients.isSearching}
+                  selected={patients.selected}
+                  onSelect={patients.select}
+                  onRemove={patients.remove}
                 />
               </div>
               <div>
                 <p className="mb-1.5 text-xs text-gray-600">{t("staff")}</p>
                 <RecipientPicker
                   placeholder={t("search_staff")}
-                  searchTerm={staffSearch}
-                  onSearchTermChange={setStaffSearch}
-                  options={staffOptions}
-                  isSearching={isStaffSearching}
-                  selected={selectedStaff}
-                  onSelect={(option) =>
-                    setSelectedStaff((prev) => [...prev, option])
-                  }
-                  onRemove={(id) =>
-                    setSelectedStaff((prev) => prev.filter((s) => s.id !== id))
-                  }
+                  searchTerm={staff.searchTerm}
+                  onSearchTermChange={staff.setSearchTerm}
+                  options={staff.options}
+                  isSearching={staff.isSearching}
+                  selected={staff.selected}
+                  onSelect={staff.select}
+                  onRemove={staff.remove}
                 />
               </div>
               {recipientsError && (

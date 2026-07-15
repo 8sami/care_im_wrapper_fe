@@ -42,9 +42,7 @@ import { CardGridSkeleton } from "@/components/Common/SkeletonLoading";
 
 import { useTranslation } from "@/hooks/useTranslation";
 
-// Mirrors the plugin backend's `_PLACEHOLDER_RE` in messaging/whatsapp.py,
-// which extracts `{{ key }}` placeholders from a synced Meta template's
-// HEADER/BODY text to determine which variable_mapping keys are needed.
+// Mirrors the backend's _PLACEHOLDER_RE (messaging/whatsapp.py).
 const PLACEHOLDER_RE = /\{\{\s*([^}]+?)\s*\}\}/g;
 
 interface TemplateComponent {
@@ -64,9 +62,7 @@ function textComponents(
   );
 }
 
-// The set of variables a template accepts is fixed by its Meta/provider-approved
-// body text, not something staff can add to or remove from — only the expression
-// each placeholder resolves to (the "value") is editable.
+// Keys are fixed by the approved template text; only their values are editable.
 function extractPlaceholderKeys(payload: NotificationTemplate["payload"]) {
   const keys: string[] = [];
   const seen = new Set<string>();
@@ -82,19 +78,14 @@ function extractPlaceholderKeys(payload: NotificationTemplate["payload"]) {
   return keys;
 }
 
-// Fills a template body's `{{ key }}` placeholders with their rendered preview
-// values, the way TemplateBuilder renders a filled-in message. Unresolved keys
-// (not yet previewed) are left as-is.
+// Fills placeholders with rendered values; unresolved keys are left as-is.
 function substituteBody(text: string, rendered: Record<string, string>) {
   return text.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, key: string) =>
     rendered[key] !== undefined ? rendered[key] || "" : match,
   );
 }
 
-// The required keys come straight from the fetched template's payload
-// (extractPlaceholderKeys). Each value's own rules come from the template's
-// provider (lib/notificationTemplateValidation) since different providers
-// impose different constraints on parameter values.
+// Value rules vary per provider; see lib/notificationTemplateValidation.
 function buildFormSchema(
   t: (key: string) => string,
   provider: string,
@@ -107,10 +98,8 @@ function buildFormSchema(
 
 type FormValues = z.infer<ReturnType<typeof buildFormSchema>>;
 
-// One node of the schema tree. Nested fields (a `target_context`, e.g. `patient`)
-// expand to reveal their children; leaf fields insert `{{ object.<path> }}` into
-// the currently-focused variable input. `pathPrefix` accumulates the dotted path
-// as we descend (["token_slot"] -> ["token_slot", "resource"] -> ...).
+// Nested fields expand to reveal children; leaf fields insert an
+// object.<path> expression into the focused variable input.
 function ObjectFieldNode({
   field,
   pathPrefix,
@@ -220,8 +209,6 @@ function FieldPicker({
   );
 }
 
-// A read-only "reference" list (message body / rendered preview): each provider
-// component (HEADER/BODY) with its text.
 function BodyCard({
   components,
   transform,
@@ -322,13 +309,11 @@ function TemplateVariablesEditor({
     () => textComponents(template.payload),
     [template.payload],
   );
-  // Fixed, derived from the approved template text - never added to or removed from here.
   const keys = useMemo(
     () => extractPlaceholderKeys(template.payload),
     [template.payload],
   );
-  // Which variable input a picker click inserts into. Starts at the first row so a
-  // click works before the user has explicitly focused anything.
+  // Which variable input a picker click inserts into; defaults to the first row.
   const [focusedIndex, setFocusedIndex] = useState(0);
 
   const form = useForm<FormValues>({
@@ -384,8 +369,7 @@ function TemplateVariablesEditor({
       navigate("/admin/notification-templates");
     },
     onError: (err) => {
-      // Server returns {"errors": {placeholder_key: message}} for per-field
-      // validation failures — surface each on its own input, like client Zod does.
+      // Server sends {"errors": {placeholder_key: message}} for per-field validation.
       if (
         err instanceof HttpError &&
         err.cause &&
@@ -416,8 +400,7 @@ function TemplateVariablesEditor({
   });
 
   const onSubmit = (values: FormValues) => {
-    // Keys outside the current template text aren't shown/editable here, but are
-    // preserved rather than silently dropped from the stored mapping.
+    // Preserve mapping keys not shown here rather than dropping them on save.
     const existingMapping = template.variable_mapping ?? {};
     const extras = Object.entries(existingMapping).filter(
       (entry): entry is [string, string] =>

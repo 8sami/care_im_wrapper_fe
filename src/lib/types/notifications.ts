@@ -1,8 +1,7 @@
-// Local mirror types for care_im_wrapper's notification API. This plugin
+// Local mirror types for care_im_wrapper's notification API; this plugin
 // can't import backend or care_fe types, only shape-match them.
 
-// Mirrors care_fe's badge.tsx variant union by hand, since the plugin can't
-// import the component's VariantProps type.
+// Mirrors care_fe's badge.tsx variant union; the plugin can't import its VariantProps type.
 export type BadgeVariant =
   | "primary"
   | "secondary"
@@ -57,14 +56,7 @@ export interface NotificationTemplate {
   modified_date: string;
 }
 
-export interface NotificationTemplateWrite {
-  is_active: boolean;
-  variable_mapping?: Record<string, unknown> | null;
-}
-
-// One node of the field schema returned by the template's `schema` action.
-// Object fields (addressed as `{{ object.<path> }}`) may nest via `fields`;
-// extra-context fields (addressed as bare `{{ <key> }}`) are always flat.
+// Object fields (object.<path>) may nest via fields; extra-context fields (a bare key) are always flat.
 export interface NotificationSchemaField {
   key: string;
   display: string;

@@ -1,10 +1,7 @@
 import { z } from "zod";
 
-// Per-provider rules for a NotificationTemplate.variable_mapping expression
-// value. Keyed by NotificationTemplate.provider (care_im_wrapper's
-// core/choices.py Provider enum - currently just "whatsapp", more will land
-// as providers are added). To support a new provider, add an entry here;
-// nothing else in the templates screen needs to change.
+// Per-provider rules for a variable_mapping expression value. To add a
+// provider, add an entry to PROVIDER_EXPRESSION_SCHEMAS below.
 type ExpressionSchemaFactory = (
   t: (key: string) => string,
 ) => z.ZodType<string, z.ZodTypeDef, string>;
@@ -12,12 +9,8 @@ type ExpressionSchemaFactory = (
 const baseExpressionSchema: ExpressionSchemaFactory = (t) =>
   z.string().trim().min(1, t("field_required"));
 
-// Matches a value fully wrapped in a Jinja2 double-brace expression, e.g.
-// the exact shape care_im_wrapper's `resolve_variable` (messaging/variables.py)
-// renders via `TemplateEngine.render`. Kept out of translated copy: i18next's
-// interpolation (skipOnVariables: false in care_fe's i18n.ts) would otherwise
-// treat a literal double-brace pair in a translation string as an unresolved
-// variable and blank it out.
+// Matches a value fully wrapped in a Jinja2 double-brace expression. Kept out
+// of translated copy since i18next would treat the braces as an interpolation.
 const DOUBLE_BRACE_EXPRESSION_RE = /^\{\{([\s\S]*)\}\}$/;
 
 function isDoubleBraceExpression(value: string) {
@@ -25,9 +18,7 @@ function isDoubleBraceExpression(value: string) {
   return !!match && match[1].trim().length > 0;
 }
 
-// Meta/WhatsApp-specific: rejects parameter values containing newlines/tabs
-// or more than 4 consecutive spaces, and requires the value to be a Jinja2
-// double-brace expression (what the backend actually evaluates it as).
+// WhatsApp rejects newlines/tabs and 5+ consecutive spaces in parameter values.
 const whatsappExpressionSchema: ExpressionSchemaFactory = (t) =>
   baseExpressionSchema(t)
     .refine((value) => !/[\n\r\t]/.test(value), {

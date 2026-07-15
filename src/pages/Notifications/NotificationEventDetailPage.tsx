@@ -90,6 +90,9 @@ export default function NotificationEventDetailPage({
       pathParams: { id: eventId },
     }),
     enabled: !!facility,
+    // Summary badges/dispatch count read event.recipients, so they need the
+    // same refetch cadence as the table or auto-refresh would miss them.
+    refetchInterval: autoRefresh ? 5000 : false,
   });
 
   const { data: recipientsData, isLoading: isRecipientsLoading } = useQuery({

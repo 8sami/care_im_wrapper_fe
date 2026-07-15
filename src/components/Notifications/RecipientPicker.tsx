@@ -29,10 +29,8 @@ interface RecipientPickerProps {
   onRemove: (id: string) => void;
 }
 
-// Mirrors care_fe's debounced-search-in-a-Command idiom (ResourceCategoryPicker,
-// PatientIdentifierSelector), trimmed to a plain multi-select since the
-// notification create form only needs "search and add", not identifier
-// verification or scanning.
+// A plain multi-select search, trimmed down from care_fe's
+// debounced-search-in-a-Command idiom (ResourceCategoryPicker).
 export default function RecipientPicker({
   placeholder,
   searchTerm,

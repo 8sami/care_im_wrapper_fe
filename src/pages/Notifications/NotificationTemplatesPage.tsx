@@ -41,8 +41,7 @@ import {
 import useFilters from "@/hooks/useFilters";
 import { useTranslation } from "@/hooks/useTranslation";
 
-// Full-page variable-mapping editor lives at this route; opening it replaces the
-// old side-sheet so the field picker can sit beside the template's fields.
+// Variable mapping is edited on its own page so the field picker can sit beside it.
 function editVariablesHref(templateId: string) {
   return `/admin/notification-templates/${templateId}/variables`;
 }

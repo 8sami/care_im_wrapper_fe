@@ -287,7 +287,7 @@ export default function NotificationEventsPage() {
                   return (
                     <TableRow
                       key={event.id}
-                      className="cursor-pointer hover:bg-gray-50 border-0"
+                      className="cursor-pointer hover:bg-gray-50"
                       onClick={() => navigate(`${baseUrl}/${event.id}`)}
                     >
                       <TableCell className="max-w-0 px-6 py-3">

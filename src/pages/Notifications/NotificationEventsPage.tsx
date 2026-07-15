@@ -259,22 +259,24 @@ export default function NotificationEventsPage() {
           {/* Desktop: table */}
           <div className="hidden min-w-0 overflow-x-auto rounded-lg bg-white shadow-sm md:block">
             <Table className="min-w-full">
-              <TableHeader className="bg-gray-100 text-gray-700">
-                <TableHead className="w-2/5 px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                  {t("title")}
-                </TableHead>
-                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                  {t("trigger")}
-                </TableHead>
-                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                  {t("status")}
-                </TableHead>
-                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                  {t("when")}
-                </TableHead>
-                <TableHead className="px-6 py-3 text-right text-xs font-medium tracking-wider uppercase">
-                  {t("actions")}
-                </TableHead>
+              <TableHeader className="bg-gray-100 text-gray-700 [&_tr]:border-b-0">
+                <TableRow>
+                  <TableHead className="w-2/5 px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("title")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("trigger")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("status")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("when")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-right text-xs font-medium tracking-wider uppercase">
+                    {t("actions")}
+                  </TableHead>
+                </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-200 bg-white">
                 {events.map((event) => {
@@ -285,7 +287,7 @@ export default function NotificationEventsPage() {
                   return (
                     <TableRow
                       key={event.id}
-                      className="cursor-pointer hover:bg-gray-50"
+                      className="cursor-pointer hover:bg-gray-50 border-0"
                       onClick={() => navigate(`${baseUrl}/${event.id}`)}
                     >
                       <TableCell className="max-w-0 px-6 py-3">

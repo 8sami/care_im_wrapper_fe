@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useContext, useState } from "react";
+import { navigate } from "raviger";
+import { useContext } from "react";
 import { toast } from "sonner";
 
 import { notificationApi } from "@/lib/api/notifications";
@@ -36,10 +37,15 @@ import {
   CardGridSkeleton,
   TableSkeleton,
 } from "@/components/Common/SkeletonLoading";
-import TemplateVariablesSheet from "@/components/Notifications/TemplateVariablesSheet";
 
 import useFilters from "@/hooks/useFilters";
 import { useTranslation } from "@/hooks/useTranslation";
+
+// Full-page variable-mapping editor lives at this route; opening it replaces the
+// old side-sheet so the field picker can sit beside the template's fields.
+function editVariablesHref(templateId: string) {
+  return `/admin/notification-templates/${templateId}/variables`;
+}
 
 export default function NotificationTemplatesPage() {
   const { t } = useTranslation();
@@ -48,8 +54,6 @@ export default function NotificationTemplatesPage() {
   const { qParams, resultsPerPage, Pagination } = useFilters({
     limit: 15,
   });
-  const [activeTemplate, setActiveTemplate] =
-    useState<NotificationTemplate | null>(null);
 
   const canManage = hasPermission(
     "can_manage_notification_template",
@@ -152,33 +156,35 @@ export default function NotificationTemplatesPage() {
                 template={template}
                 canManage={canManage}
                 onToggle={() => toggleMutation.mutate(template.id)}
-                onEditVariables={() => setActiveTemplate(template)}
+                onEditVariables={() => navigate(editVariablesHref(template.id))}
               />
             ))}
           </div>
 
           {/* Desktop: table */}
           <div className="mt-4 hidden min-w-0 overflow-x-auto rounded-lg bg-white shadow-sm md:block">
-            <Table className="min-w-full divide-y divide-gray-200">
-              <TableHeader className="bg-gray-100 text-gray-700">
-                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                  {t("name")}
-                </TableHead>
-                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                  {t("channel")}
-                </TableHead>
-                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                  {t("category")}
-                </TableHead>
-                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                  {t("approval")}
-                </TableHead>
-                <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                  {t("language")}
-                </TableHead>
-                <TableHead className="px-6 py-3 text-right text-xs font-medium tracking-wider uppercase">
-                  {t("actions")}
-                </TableHead>
+            <Table className="min-w-full">
+              <TableHeader className="bg-gray-100 text-gray-700 [&_tr]:border-b-0">
+                <TableRow>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("name")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("channel")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("category")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("approval")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                    {t("language")}
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-right text-xs font-medium tracking-wider uppercase">
+                    {t("actions")}
+                  </TableHead>
+                </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-200 bg-white">
                 {templates.map((template) => (
@@ -186,9 +192,10 @@ export default function NotificationTemplatesPage() {
                     key={template.id}
                     className={
                       template.is_active
-                        ? "hover:bg-gray-50"
-                        : "opacity-50 hover:bg-gray-50"
+                        ? "cursor-pointer hover:bg-gray-50"
+                        : "cursor-pointer opacity-50 hover:bg-gray-50"
                     }
+                    onClick={() => navigate(editVariablesHref(template.id))}
                   >
                     <TableCell className="px-6 py-3">
                       <div className="text-sm font-semibold text-gray-950">
@@ -220,22 +227,19 @@ export default function NotificationTemplatesPage() {
                     <TableCell className="px-6 py-3 text-sm text-gray-500">
                       {template.language_code ?? "—"}
                     </TableCell>
-                    <TableCell className="px-6 py-3 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <CareIcon icon="l-ellipsis-v" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => setActiveTemplate(template)}
-                          >
-                            {canManage
-                              ? t("edit_variables")
-                              : t("view_variables")}
-                          </DropdownMenuItem>
-                          {canManage && (
+                    {/* stopPropagation: menu clicks must not trigger the row's navigate. */}
+                    <TableCell
+                      className="px-6 py-3 text-right"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {canManage && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <CareIcon icon="l-ellipsis-v" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
                             <DropdownMenuItem
                               disabled={toggleMutation.isPending}
                               onClick={() => toggleMutation.mutate(template.id)}
@@ -244,9 +248,9 @@ export default function NotificationTemplatesPage() {
                                 ? t("deactivate")
                                 : t("activate")}
                             </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -257,12 +261,6 @@ export default function NotificationTemplatesPage() {
       )}
 
       {Pagination({ totalCount: data?.count ?? 0 })}
-
-      <TemplateVariablesSheet
-        template={activeTemplate}
-        canManage={canManage}
-        onOpenChange={(open) => !open && setActiveTemplate(null)}
-      />
     </Page>
   );
 }
@@ -280,31 +278,39 @@ function TemplateCard({
 }) {
   const { t } = useTranslation();
   return (
-    <Card className={template.is_active ? "p-4" : "p-4 opacity-50"}>
+    <Card
+      className={
+        template.is_active
+          ? "cursor-pointer p-4"
+          : "cursor-pointer p-4 opacity-50"
+      }
+      onClick={onEditVariables}
+    >
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
           <div className="text-sm font-semibold">{template.name}</div>
           <div className="font-mono text-xs text-gray-500">{template.slug}</div>
         </div>
-        <div className="flex items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <CareIcon icon="l-ellipsis-v" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEditVariables}>
-                {canManage ? t("edit_variables") : t("view_variables")}
-              </DropdownMenuItem>
-              {canManage && (
+        {/* stopPropagation: menu clicks must not trigger the card's navigate. */}
+        {canManage && (
+          <div
+            className="flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <CareIcon icon="l-ellipsis-v" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={onToggle}>
                   {template.is_active ? t("deactivate") : t("activate")}
                 </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <Badge variant="secondary">{template.provider}</Badge>

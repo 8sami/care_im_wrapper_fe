@@ -3,6 +3,7 @@ import Layout from "@/components/Common/Layout";
 import NotificationCreateEventPage from "./pages/Notifications/NotificationCreateEventPage";
 import NotificationEventDetailPage from "./pages/Notifications/NotificationEventDetailPage";
 import NotificationEventsPage from "./pages/Notifications/NotificationEventsPage";
+import NotificationTemplateVariablesPage from "./pages/Notifications/NotificationTemplateVariablesPage";
 import NotificationTemplatesPage from "./pages/Notifications/NotificationTemplatesPage";
 import Welcome from "./pages/Welcome";
 
@@ -38,6 +39,15 @@ const routes = {
   "/admin/notification-templates": () => (
     <Layout>
       <NotificationTemplatesPage />
+    </Layout>
+  ),
+  "/admin/notification-templates/:templateId/variables": ({
+    templateId,
+  }: {
+    templateId: string;
+  }) => (
+    <Layout>
+      <NotificationTemplateVariablesPage templateId={templateId} />
     </Layout>
   ),
 };

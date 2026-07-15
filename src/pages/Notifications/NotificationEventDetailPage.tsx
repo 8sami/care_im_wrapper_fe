@@ -322,23 +322,25 @@ export default function NotificationEventDetailPage({
 
             {/* Desktop: table */}
             <div className="hidden min-w-0 overflow-x-auto rounded-lg bg-white shadow-sm md:block">
-              <Table className="min-w-full divide-y divide-gray-200">
-                <TableHeader className="bg-gray-100 text-gray-700">
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("recipient")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("channel")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("status")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("tracking_id")}
-                  </TableHead>
-                  <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                    {t("when")}
-                  </TableHead>
+              <Table className="min-w-full">
+                <TableHeader className="bg-gray-100 text-gray-700 [&_tr]:border-b-0">
+                  <TableRow>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                      {t("recipient")}
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                      {t("channel")}
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                      {t("status")}
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                      {t("tracking_id")}
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
+                      {t("when")}
+                    </TableHead>
+                  </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-200 bg-white">
                   {recipients.map((recipient) => (

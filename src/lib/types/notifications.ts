@@ -62,6 +62,31 @@ export interface NotificationTemplateWrite {
   variable_mapping?: Record<string, unknown> | null;
 }
 
+// One node of the field schema returned by the template's `schema` action.
+// Object fields (addressed as `{{ object.<path> }}`) may nest via `fields`;
+// extra-context fields (addressed as bare `{{ <key> }}`) are always flat.
+export interface NotificationSchemaField {
+  key: string;
+  display: string;
+  description?: string;
+  type: string;
+  preview_value?: unknown;
+  is_nested_context?: boolean;
+  fields?: NotificationSchemaField[];
+}
+
+export interface NotificationTemplateSchema {
+  contexts: { slug: string; display_name: string; description: string }[];
+  object_fields: NotificationSchemaField[];
+  extra_context_fields: NotificationSchemaField[];
+}
+
+export interface VariableMappingPreviewResponse {
+  rendered: Record<string, string>;
+  errors?: Record<string, string>;
+  detail?: string;
+}
+
 // null means pending / not yet dispatched.
 export type NotificationDeliveryStatus =
   | "sent"

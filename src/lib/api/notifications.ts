@@ -6,7 +6,9 @@ import {
   NotificationEventWrite,
   NotificationRecipient,
   NotificationTemplate,
+  NotificationTemplateSchema,
   NotificationTrigger,
+  VariableMappingPreviewResponse,
 } from "@/lib/types/notifications";
 
 const BASE = "/api/care_im_wrapper";
@@ -21,6 +23,11 @@ export const notificationApi = apiRoutes({
     path: `${BASE}/notification-templates/`,
     method: HttpMethod.GET,
     TResponse: {} as PaginatedResponse<NotificationTemplate>,
+  },
+  templates_retrieve: {
+    path: `${BASE}/notification-templates/{id}/`,
+    method: HttpMethod.GET,
+    TResponse: {} as NotificationTemplate,
   },
   template_toggle_active: {
     path: `${BASE}/notification-templates/{id}/toggle_active/`,
@@ -37,6 +44,17 @@ export const notificationApi = apiRoutes({
     method: HttpMethod.POST,
     TRequest: {} as { variable_mapping: Record<string, unknown> },
     TResponse: {} as NotificationTemplate,
+  },
+  template_schema: {
+    path: `${BASE}/notification-templates/{id}/schema/`,
+    method: HttpMethod.GET,
+    TResponse: {} as NotificationTemplateSchema,
+  },
+  template_preview_variable_mapping: {
+    path: `${BASE}/notification-templates/{id}/preview_variable_mapping/`,
+    method: HttpMethod.POST,
+    TRequest: {} as { variable_mapping: Record<string, unknown> },
+    TResponse: {} as VariableMappingPreviewResponse,
   },
   events_list: {
     path: `${BASE}/notification-events/`,

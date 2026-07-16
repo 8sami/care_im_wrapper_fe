@@ -242,8 +242,7 @@ export default function NotificationEventsPage() {
         <NotificationEventsEmptyState hasFilters={hasFilters} />
       ) : (
         <>
-          {/* Mobile: card grid */}
-          <div className="grid gap-4 md:hidden">
+          <div className="grid grid-cols-1 gap-4 md:hidden">
             {events.map((event) => (
               <NotificationEventCard
                 key={event.id}
@@ -421,9 +420,9 @@ function NotificationEventCard({
   ).length;
 
   return (
-    <Card className="p-4 shadow-sm">
+    <Card className="min-w-0 p-4 shadow-sm">
       <div className="mb-2 flex items-start justify-between gap-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold" title={event.title}>
             {event.title}
           </div>

@@ -483,7 +483,7 @@ export default function NotificationEventDetailPage({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-auto p-0 text-xs"
+                      className="h-auto p-1 text-xs mb-2"
                       onClick={() => {
                         navigator.clipboard.writeText(
                           JSON.stringify(status.payload, null, 2),
@@ -495,7 +495,7 @@ export default function NotificationEventDetailPage({
                       {t("copy")}
                     </Button>
                   </div>
-                  <pre className="overflow-x-auto rounded bg-gray-900 p-3 font-mono text-xs whitespace-pre-wrap text-gray-100">
+                  <pre className="overflow-x-auto rounded bg-gray-900 p-3 font-mono text-xs whitespace-pre-wrap text-gray-400">
                     {JSON.stringify(status.payload, null, 2)}
                   </pre>
                 </div>

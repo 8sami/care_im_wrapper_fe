@@ -2,9 +2,10 @@ import { z } from "zod";
 
 // Per-provider rules for a variable_mapping expression value. To add a
 // provider, add an entry to PROVIDER_EXPRESSION_SCHEMAS below.
+// zod 4 dropped the three-generic ZodType<Output, Def, Input>; it is ZodType<Output, Input>.
 type ExpressionSchemaFactory = (
   t: (key: string) => string,
-) => z.ZodType<string, z.ZodTypeDef, string>;
+) => z.ZodType<string, string>;
 
 const baseExpressionSchema: ExpressionSchemaFactory = (t) =>
   z.string().trim().min(1, t("field_required"));

@@ -1,9 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { RecipientOption } from "@/components/Notifications/RecipientPicker";
+import {
+  MIN_SEARCH_LENGTH,
+  RecipientOption,
+} from "@/components/Notifications/RecipientPicker";
 
-// Debounced 2+ character search paired with a locally held multi-select.
+// Debounced search paired with a locally held multi-select.
 export default function useRecipientSearch<TItem>(
   queryKey: string,
   searchQueryFn: (
@@ -17,7 +20,7 @@ export default function useRecipientSearch<TItem>(
   const { data, isFetching } = useQuery({
     queryKey: [queryKey, searchTerm],
     queryFn: searchQueryFn(searchTerm),
-    enabled: searchTerm.trim().length >= 2,
+    enabled: searchTerm.trim().length >= MIN_SEARCH_LENGTH,
   });
 
   return {

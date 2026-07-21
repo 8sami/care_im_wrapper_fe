@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { notificationApi } from "@/lib/api/notifications";
+import { config } from "@/lib/config";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import { hasPermission } from "@/lib/permissions";
 import { HttpError, mutate, query } from "@/lib/request";
@@ -13,6 +14,7 @@ import {
   NotificationRecipient,
   TRIGGER_TYPE_BADGE,
 } from "@/lib/types/notifications";
+import { activateOnKey } from "@/lib/utils";
 
 import CareIcon from "@/CAREUI/icons/CareIcon";
 
@@ -87,7 +89,11 @@ function RecipientStatusSummary({
             ]
           }
         >
-          {count} {t("of")} {recipients.length} {t(status)}
+          {t("recipient_status_count", {
+            count,
+            total: recipients.length,
+            status: t(status),
+          })}
         </Badge>
       ))}
     </span>
@@ -117,7 +123,7 @@ export default function NotificationEventsPage() {
   const { facilityId, facility, isFacilityLoading } = useFacilityAccessGuard();
   const { qParams, updateQuery, removeFilter, resultsPerPage, Pagination } =
     useFilters({
-      limit: 15,
+      limit: config.listPageSize,
     });
   const { triggers, triggersById } = useNotificationTriggers();
   const [dispatchTarget, setDispatchTarget] =
@@ -288,6 +294,9 @@ export default function NotificationEventsPage() {
                       key={event.id}
                       className="cursor-pointer hover:bg-gray-50"
                       onClick={() => navigate(`${baseUrl}/${event.id}`)}
+                      {...activateOnKey(() =>
+                        navigate(`${baseUrl}/${event.id}`),
+                      )}
                     >
                       <TableCell className="max-w-0 px-6 py-3">
                         <div

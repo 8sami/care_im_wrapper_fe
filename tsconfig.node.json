@@ -19,7 +19,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
   },
-  "include": ["vite.config.mts", "eslint.config.mjs", "plugins"]
+  "include": ["vite.config.mts", "eslint.config.mjs", "plugins", "scripts"],
 }

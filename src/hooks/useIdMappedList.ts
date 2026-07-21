@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { config } from "@/lib/config";
 import { PaginatedResponse } from "@/lib/request";
 
 // Fetches a small, static catalog once and exposes it as both a list and an id -> item map.
@@ -10,7 +11,7 @@ export default function useIdMappedList<T extends { id: string }>(
   const { data, isLoading } = useQuery({
     queryKey: [queryKey, "all"],
     queryFn,
-    staleTime: 5 * 60 * 1000,
+    staleTime: config.catalogStaleMs,
   });
 
   const list = data?.results ?? [];

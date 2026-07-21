@@ -2,6 +2,11 @@ import { cn } from "@/lib/utils";
 
 import PageTitle, { PageTitleProps } from "@/components/Common/PageTitle";
 
+// Vendored from care_fe, minus its `shortCutContext` prop and the
+// useShortcutSubContext() call behind it: that hook comes from care_fe's
+// ShortcutContext, which a federated plugin has no access to. Everything else here is
+// kept byte-identical to upstream so it can be re-synced without a merge.
+
 interface PageProps extends PageTitleProps {
   children: React.ReactNode | React.ReactNode[];
   options?: React.ReactNode | React.ReactNode[];

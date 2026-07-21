@@ -106,6 +106,8 @@ export interface NotificationRecipient {
   latest_status: NotificationDeliveryStatus | null;
   status_history: NotificationStatusEvent[];
   created_date: string;
+  // Resolved values actually sent to this recipient, captured server-side at send time.
+  sent_parameters: Record<string, string>;
 }
 
 export interface NotificationEventCreatedBy {

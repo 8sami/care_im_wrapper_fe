@@ -13,7 +13,7 @@ export default defineConfig({
       name: "care_im_wrapper",
       filename: "remoteEntry.js",
       exposes: {
-        "./manifest": "./src/manifest.ts",
+        "./manifest": "./src/manifest.tsx",
       },
       shared: [
         "react",

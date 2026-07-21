@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import { Link, navigate } from "raviger";
 import { useContext, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -42,13 +41,19 @@ import { CardGridSkeleton } from "@/components/Common/SkeletonLoading";
 
 import { useTranslation } from "@/hooks/useTranslation";
 
-// Mirrors the backend's _PLACEHOLDER_RE (messaging/whatsapp.py).
-const PLACEHOLDER_RE = /\{\{\s*([^}]+?)\s*\}\}/g;
+// Mirrors the backend's _PLACEHOLDER_RE. Built per use, not shared: a /g regex's mutable
+// lastIndex would make shared .test() calls interfere.
+const placeholderRe = () => /\{\{\s*([^}]+?)\s*\}\}/g;
+
+// The backend addresses a template's dynamic URL button suffix through this fixed
+// mapping key, not a HEADER/BODY placeholder (whatsapp._build_button_components).
+const URL_SUFFIX_KEY = "url_suffix";
 
 interface TemplateComponent {
   type?: string;
   format?: string;
   text?: string;
+  buttons?: { type?: string; url?: string }[];
 }
 
 function textComponents(
@@ -67,7 +72,7 @@ function extractPlaceholderKeys(payload: NotificationTemplate["payload"]) {
   const keys: string[] = [];
   const seen = new Set<string>();
   for (const component of textComponents(payload)) {
-    for (const match of (component.text ?? "").matchAll(PLACEHOLDER_RE)) {
+    for (const match of (component.text ?? "").matchAll(placeholderRe())) {
       const key = match[1];
       if (!seen.has(key)) {
         seen.add(key);
@@ -78,9 +83,26 @@ function extractPlaceholderKeys(payload: NotificationTemplate["payload"]) {
   return keys;
 }
 
+// A dynamic URL button (its url carries a {{...}}) needs a url_suffix mapping the
+// HEADER/BODY placeholder scan won't surface -- mirrors whatsapp._build_button_components.
+function hasDynamicUrlButton(
+  payload: NotificationTemplate["payload"],
+): boolean {
+  const components = (payload?.components as TemplateComponent[]) ?? [];
+  return components.some(
+    (c) =>
+      (c.type ?? "").toUpperCase() === "BUTTONS" &&
+      (c.buttons ?? []).some(
+        (b) =>
+          (b.type ?? "").toUpperCase() === "URL" &&
+          placeholderRe().test(b.url ?? ""),
+      ),
+  );
+}
+
 // Fills placeholders with rendered values; unresolved keys are left as-is.
 function substituteBody(text: string, rendered: Record<string, string>) {
-  return text.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, key: string) =>
+  return text.replace(placeholderRe(), (match, key: string) =>
     rendered[key] !== undefined ? rendered[key] || "" : match,
   );
 }
@@ -120,11 +142,10 @@ function ObjectFieldNode({
     return (
       <Collapsible open={open} onOpenChange={setOpen}>
         <CollapsibleTrigger className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm font-medium text-gray-900 hover:bg-gray-100">
-          {open ? (
-            <ChevronDown className="size-4 shrink-0 text-gray-400" />
-          ) : (
-            <ChevronRight className="size-4 shrink-0 text-gray-400" />
-          )}
+          <CareIcon
+            icon={open ? "l-angle-down" : "l-angle-right"}
+            className="size-4 shrink-0 text-gray-400"
+          />
           {field.display}
         </CollapsibleTrigger>
         <CollapsibleContent className="ml-3 border-l border-gray-200 pl-2">
@@ -309,10 +330,13 @@ function TemplateVariablesEditor({
     () => textComponents(template.payload),
     [template.payload],
   );
-  const keys = useMemo(
-    () => extractPlaceholderKeys(template.payload),
-    [template.payload],
-  );
+  const keys = useMemo(() => {
+    const bodyKeys = extractPlaceholderKeys(template.payload);
+    return hasDynamicUrlButton(template.payload) &&
+      !bodyKeys.includes(URL_SUFFIX_KEY)
+      ? [...bodyKeys, URL_SUFFIX_KEY]
+      : bodyKeys;
+  }, [template.payload]);
   // Which variable input a picker click inserts into; defaults to the first row.
   const [focusedIndex, setFocusedIndex] = useState(0);
 
@@ -503,10 +527,9 @@ function TemplateVariablesEditor({
             </div>
           ))}
         </div>
-        <div className="grid gap-4 lg:max-w-4xl lg:grid-cols-2 lg:items-start">
-          {messageBody}
-          {previewBox}
-        </div>
+        {/* No previewBox here: rendering a preview needs can_manage, so for a read-only
+            viewer that card can only ever say "no preview available". */}
+        <div className="max-w-2xl">{messageBody}</div>
       </div>
     );
   }

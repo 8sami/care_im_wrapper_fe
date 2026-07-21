@@ -1,15 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "raviger";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { toast } from "sonner";
 
 import { notificationApi } from "@/lib/api/notifications";
+import { config } from "@/lib/config";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import { hasPermission } from "@/lib/permissions";
 import { HttpError, mutate, query } from "@/lib/request";
 import {
   NOTIFICATION_STATUS_BADGE,
   NotificationDeliveryStatus,
+  NotificationEvent,
   NotificationRecipient,
   TRIGGER_TYPE_BADGE,
 } from "@/lib/types/notifications";
@@ -57,6 +59,9 @@ import useNotificationTemplates from "@/hooks/useNotificationTemplates";
 import useNotificationTriggers from "@/hooks/useNotificationTriggers";
 import { useTranslation } from "@/hooks/useTranslation";
 
+// Nothing can change once every recipient has been read or has failed, so polling stops.
+const TERMINAL_STATUSES: NotificationDeliveryStatus[] = ["read", "failed"];
+
 const STATUS_ORDER: (NotificationDeliveryStatus | "pending")[] = [
   "pending",
   "sent",
@@ -64,6 +69,27 @@ const STATUS_ORDER: (NotificationDeliveryStatus | "pending")[] = [
   "read",
   "failed",
 ];
+
+function isSettled(event?: NotificationEvent) {
+  return (
+    !!event &&
+    event.recipients.every(
+      (r) =>
+        r.latest_status !== null && TERMINAL_STATUSES.includes(r.latest_status),
+    )
+  );
+}
+
+// clipboard is undefined outside a secure context and writeText can reject, so await the
+// outcome -- reporting success unconditionally claimed a copy that never happened.
+async function copyToClipboard(text: string, t: (key: string) => string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success(t("copied_to_clipboard"));
+  } catch {
+    toast.error(t("copy_failed"));
+  }
+}
 
 function latestStatusDate(recipient: NotificationRecipient) {
   const latest = recipient.status_history.at(-1);
@@ -78,6 +104,53 @@ function failureDetails(recipient: NotificationRecipient) {
   );
 }
 
+// Collapsible key/value list, reused for the event's input variables (size "sm") and each
+// recipient's server-captured sent_parameters (size "xs"). showKey/hideKey name which.
+function ValuesToggle({
+  values,
+  size = "xs",
+  showKey = "show_values",
+  hideKey = "hide_values",
+}: {
+  values: Record<string, unknown>;
+  size?: "sm" | "xs";
+  showKey?: string;
+  hideKey?: string;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const entries = Object.entries(values ?? {});
+  if (entries.length === 0) {
+    return null;
+  }
+  const text = size === "sm" ? "text-sm" : "text-xs";
+  return (
+    <div className={size === "sm" ? "" : "mt-1 pt-1"}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-auto p-0 ${text} text-primary-700`}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        {open ? t(hideKey) : t(showKey)}
+        <CareIcon icon={open ? "l-angle-up" : "l-angle-down"} />
+      </Button>
+      {open && (
+        <dl className={`mt-2 space-y-1 ${text}`}>
+          {entries.map(([key, value]) => (
+            <div key={key} className="flex gap-2">
+              <dt className="font-mono text-gray-500">{key}:</dt>
+              <dd className={size === "sm" ? "" : "break-all"}>
+                {String(value)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
+  );
+}
+
 export default function NotificationEventDetailPage({
   eventId,
 }: {
@@ -88,29 +161,34 @@ export default function NotificationEventDetailPage({
   const { facilityId, facility, isFacilityLoading } = useFacilityAccessGuard();
   const { triggersById } = useNotificationTriggers();
   const { templatesById } = useNotificationTemplates();
-  const [showVariables, setShowVariables] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [confirmDispatch, setConfirmDispatch] = useState(false);
   const [errorRecipient, setErrorRecipient] =
     useState<NotificationRecipient | null>(null);
 
-  const { qParams, resultsPerPage, Pagination } = useFilters({ limit: 10 });
+  const { qParams, resultsPerPage, Pagination } = useFilters({
+    limit: config.recipientsPageSize,
+  });
 
   const canDispatch = hasPermission(
     "can_dispatch_notification_event",
     facility?.permissions ?? [],
   );
 
-  const { data: event, isLoading: isEventLoading } = useQuery({
-    queryKey: ["notification-event", eventId],
-    queryFn: query(notificationApi.events_retrieve, {
-      pathParams: { id: eventId },
-    }),
-    enabled: !!facility,
-    // Summary badges/dispatch count read event.recipients, so they need the
-    // same refetch cadence as the table or auto-refresh would miss them.
-    refetchInterval: autoRefresh ? 5000 : false,
-  });
+  // Explicit generic: refetchInterval below reads back its own query's data, which makes
+  // the result type circular for inference.
+  const { data: event, isLoading: isEventLoading } =
+    useQuery<NotificationEvent>({
+      queryKey: ["notification-event", eventId],
+      queryFn: query(notificationApi.events_retrieve, {
+        pathParams: { id: eventId },
+      }),
+      enabled: !!facility,
+      // Refetch while any recipient is unsettled (summary badges read event.recipients too).
+      // Stops once all are settled -- the payload embeds full status history, so it's not free.
+      refetchInterval: (q) =>
+        autoRefresh && !isSettled(q.state.data) ? config.pollIntervalMs : false,
+    });
 
   const { data: recipientsData, isLoading: isRecipientsLoading } = useQuery({
     queryKey: ["notification-recipients", facilityId, eventId, qParams.page],
@@ -123,7 +201,8 @@ export default function NotificationEventDetailPage({
       },
     }),
     enabled: !!facility,
-    refetchInterval: autoRefresh ? 5000 : false,
+    refetchInterval:
+      autoRefresh && !isSettled(event) ? config.pollIntervalMs : false,
   });
 
   const dispatchMutation = useMutation({
@@ -228,7 +307,10 @@ export default function NotificationEventDetailPage({
         {STATUS_ORDER.filter((status) => statusCounts.has(status)).map(
           (status) => (
             <Badge key={status} variant={NOTIFICATION_STATUS_BADGE[status]}>
-              {statusCounts.get(status)} {t(status)}
+              {t("status_count", {
+                count: statusCounts.get(status),
+                status: t(status),
+              })}
             </Badge>
           ),
         )}
@@ -253,34 +335,12 @@ export default function NotificationEventDetailPage({
               "—"
             )}
           </div>
-          {event.variable_values &&
-            Object.keys(event.variable_values).length > 0 && (
-              <div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowVariables((prev) => !prev)}
-                  className="h-auto p-0 text-sm text-primary-700"
-                >
-                  {showVariables ? t("hide_values") : t("show_values")}
-                  <CareIcon
-                    icon={showVariables ? "l-angle-up" : "l-angle-down"}
-                  />
-                </Button>
-                {showVariables && (
-                  <dl className="mt-2 space-y-1 text-sm">
-                    {Object.entries(event.variable_values).map(
-                      ([key, value]) => (
-                        <div key={key} className="flex gap-2">
-                          <dt className="font-mono text-gray-500">{key}:</dt>
-                          <dd>{String(value)}</dd>
-                        </div>
-                      ),
-                    )}
-                  </dl>
-                )}
-              </div>
-            )}
+          <ValuesToggle
+            values={event.variable_values ?? {}}
+            size="sm"
+            showKey="show_input_variables"
+            hideKey="hide_input_variables"
+          />
         </CardContent>
       </Card>
 
@@ -292,13 +352,19 @@ export default function NotificationEventDetailPage({
             {recipientsData?.count ?? event.recipients.length})
           </h2>
           <div className="flex items-center gap-2">
-            <Label className="text-sm">{t("auto_refresh")}</Label>
-            <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+            <Label htmlFor="auto-refresh" className="text-sm">
+              {t("auto_refresh")}
+            </Label>
+            <Switch
+              id="auto-refresh"
+              checked={autoRefresh}
+              onCheckedChange={setAutoRefresh}
+            />
           </div>
         </div>
 
         {isRecipientsLoading ? (
-          <TableSkeleton count={3} />
+          <TableSkeleton count={3} columns={6} />
         ) : recipients.length === 0 ? (
           <p className="text-sm text-gray-500">{t("no_recipients")}</p>
         ) : (
@@ -348,6 +414,11 @@ export default function NotificationEventDetailPage({
                       </span>
                     </TooltipComponent>
                   </div>
+                  <ValuesToggle
+                    values={recipient.sent_parameters}
+                    showKey="show_sent_values"
+                    hideKey="hide_sent_values"
+                  />
                 </Card>
               ))}
             </div>
@@ -376,76 +447,91 @@ export default function NotificationEventDetailPage({
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-200 bg-white">
                   {recipients.map((recipient) => (
-                    <TableRow key={recipient.id} className="hover:bg-gray-50">
-                      <TableCell className="px-6 py-3">
-                        <div className="text-sm text-gray-950">
-                          {recipient.recipient_name ??
-                            recipient.recipient_phone}
-                        </div>
-                        {recipient.recipient_name && (
-                          <div className="text-xs text-gray-500">
-                            {recipient.recipient_phone}
+                    <Fragment key={recipient.id}>
+                      <TableRow className="hover:bg-gray-50">
+                        <TableCell className="px-6 py-3">
+                          <div className="text-sm text-gray-950">
+                            {recipient.recipient_name ??
+                              recipient.recipient_phone}
                           </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="px-6 py-3">
-                        <Badge variant="secondary">{recipient.provider}</Badge>
-                      </TableCell>
-                      <TableCell className="px-6 py-3">
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={
-                              NOTIFICATION_STATUS_BADGE[
-                                recipient.latest_status ?? "pending"
-                              ]
-                            }
-                          >
-                            {t(recipient.latest_status ?? "pending")}
-                          </Badge>
-                          {failureDetails(recipient).length > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-auto p-0 text-xs text-red-600"
-                              onClick={() => setErrorRecipient(recipient)}
-                            >
-                              <CareIcon
-                                icon="l-info-circle"
-                                className="size-3"
-                              />
-                              {t("see_error")}
-                            </Button>
+                          {recipient.recipient_name && (
+                            <div className="text-xs text-gray-500">
+                              {recipient.recipient_phone}
+                            </div>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-3 font-mono text-xs">
-                        {recipient.tracking_id ? (
-                          <button
-                            type="button"
-                            className="max-w-40 truncate hover:underline"
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                recipient.tracking_id ?? "",
-                              );
-                              toast.success(t("copied_to_clipboard"));
-                            }}
+                        </TableCell>
+                        <TableCell className="px-6 py-3">
+                          <Badge variant="secondary">
+                            {recipient.provider}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="px-6 py-3">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant={
+                                NOTIFICATION_STATUS_BADGE[
+                                  recipient.latest_status ?? "pending"
+                                ]
+                              }
+                            >
+                              {t(recipient.latest_status ?? "pending")}
+                            </Badge>
+                            {failureDetails(recipient).length > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto p-0 text-xs text-red-600"
+                                onClick={() => setErrorRecipient(recipient)}
+                              >
+                                <CareIcon
+                                  icon="l-info-circle"
+                                  className="size-3"
+                                />
+                                {t("see_error")}
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-3 font-mono text-xs">
+                          {recipient.tracking_id ? (
+                            <button
+                              type="button"
+                              className="max-w-40 truncate hover:underline"
+                              onClick={() =>
+                                copyToClipboard(recipient.tracking_id ?? "", t)
+                              }
+                            >
+                              {recipient.tracking_id}
+                            </button>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell className="px-6 py-3">
+                          <TooltipComponent
+                            content={formatDateTime(
+                              latestStatusDate(recipient),
+                            )}
                           >
-                            {recipient.tracking_id}
-                          </button>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell className="px-6 py-3">
-                        <TooltipComponent
-                          content={formatDateTime(latestStatusDate(recipient))}
-                        >
-                          <span className="text-xs text-gray-500">
-                            {formatRelativeTime(latestStatusDate(recipient))}
-                          </span>
-                        </TooltipComponent>
-                      </TableCell>
-                    </TableRow>
+                            <span className="text-xs text-gray-500">
+                              {formatRelativeTime(latestStatusDate(recipient))}
+                            </span>
+                          </TooltipComponent>
+                        </TableCell>
+                      </TableRow>
+                      {Object.keys(recipient.sent_parameters ?? {}).length >
+                        0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="px-6 pt-0 pb-3">
+                            <ValuesToggle
+                              values={recipient.sent_parameters}
+                              showKey="show_sent_values"
+                              hideKey="hide_sent_values"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
@@ -484,12 +570,12 @@ export default function NotificationEventDetailPage({
                       variant="ghost"
                       size="sm"
                       className="h-auto p-1 text-xs mb-2"
-                      onClick={() => {
-                        navigator.clipboard.writeText(
+                      onClick={() =>
+                        copyToClipboard(
                           JSON.stringify(status.payload, null, 2),
-                        );
-                        toast.success(t("copied_to_clipboard"));
-                      }}
+                          t,
+                        )
+                      }
                     >
                       <CareIcon icon="l-copy" className="size-3" />
                       {t("copy")}

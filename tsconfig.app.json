@@ -1,14 +1,17 @@
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
 
     /* Bundler mode */
+    // `baseUrl` remains deprecated in TS 6 but still functions; silence that one
+    // warning via ignoreDeprecations, as care_fe does.
     "moduleResolution": "bundler",
+    "ignoreDeprecations": "6.0",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
@@ -24,8 +27,10 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": ["./src/*"],
+    },
   },
-  "include": ["src", "scripts"]
+  // Browser sources only. Node-side tooling (vite config, eslint config, plugins,
+  // scripts) is typechecked by tsconfig.node.json, which has the Node types and libs.
+  "include": ["src"],
 }

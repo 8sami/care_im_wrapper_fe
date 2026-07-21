@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useFullPath } from "raviger";
 
 import { facilityApi } from "@/lib/api/notifications";
+import { config } from "@/lib/config";
 import { query } from "@/lib/request";
 
 function extractFacilityId(path: string): string {
@@ -31,7 +32,7 @@ export default function useCurrentFacility() {
       pathParams: { facilityId },
       silent: true,
     }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: config.catalogStaleMs,
   });
 
   return { facilityId, facility, isFacilityLoading, isFacilityError };

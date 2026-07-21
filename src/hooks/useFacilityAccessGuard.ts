@@ -5,10 +5,9 @@ import { toast } from "sonner";
 import useCurrentFacility from "@/hooks/useCurrentFacility";
 import { useTranslation } from "@/hooks/useTranslation";
 
-// Shared by every facility-scoped screen: the useCurrentFacility fetch
-// doubles as the access probe (research §12.3), so a load failure means
-// either a foreign facility id or no read permission. Redirect rather than
-// leave a blank page (V6).
+// Shared by every facility-scoped screen: the useCurrentFacility fetch doubles as the
+// access probe, so a load failure means either a foreign facility id or no read
+// permission. Redirect rather than leave the user on a blank page.
 export default function useFacilityAccessGuard() {
   const { t } = useTranslation();
   const { facilityId, facility, isFacilityLoading, isFacilityError } =

@@ -1,3 +1,5 @@
+import { config } from "@/lib/config";
+
 import CareIcon from "@/CAREUI/icons/CareIcon";
 
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +19,10 @@ export interface RecipientOption {
   label: string;
   sublabel?: string;
 }
+
+// Shared with useRecipientSearch, which gates the query on the same threshold. Keeping
+// these in step matters: a mismatch shows "no matches" for input that never queried.
+export const MIN_SEARCH_LENGTH = config.searchMinLength;
 
 interface RecipientPickerProps {
   placeholder: string;
@@ -62,7 +68,7 @@ export default function RecipientPicker({
             <div className="cursor-default p-4 text-sm text-gray-500">
               {t("searching")}
             </div>
-          ) : searchTerm.length < 2 ? (
+          ) : searchTerm.trim().length < MIN_SEARCH_LENGTH ? (
             <div className="cursor-default p-4 text-sm text-gray-500">
               {t("start_typing_to_search")}
             </div>

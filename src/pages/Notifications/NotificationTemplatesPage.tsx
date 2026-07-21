@@ -4,6 +4,7 @@ import { useContext } from "react";
 import { toast } from "sonner";
 
 import { notificationApi } from "@/lib/api/notifications";
+import { config } from "@/lib/config";
 import { hasPermission } from "@/lib/permissions";
 import { HttpError, mutate, query } from "@/lib/request";
 import {
@@ -11,6 +12,7 @@ import {
   NotificationTemplate,
   TEMPLATE_APPROVAL_BADGE,
 } from "@/lib/types/notifications";
+import { activateOnKey } from "@/lib/utils";
 
 import CareIcon from "@/CAREUI/icons/CareIcon";
 
@@ -51,7 +53,7 @@ export default function NotificationTemplatesPage() {
   const queryClient = useQueryClient();
   const auth = useContext(window.AuthUserContext);
   const { qParams, resultsPerPage, Pagination } = useFilters({
-    limit: 15,
+    limit: config.listPageSize,
   });
 
   const canManage = hasPermission(
@@ -93,6 +95,15 @@ export default function NotificationTemplatesPage() {
       mutate(notificationApi.templates_sync, { silent: true })(undefined),
     onSuccess: () => {
       toast.success(t("template_sync_queued"));
+      // Sync runs as a background task, so refetch after a short grace period rather than
+      // immediately -- an instant refetch would only re-read the pre-sync state.
+      window.setTimeout(
+        () =>
+          queryClient.invalidateQueries({
+            queryKey: ["notification-templates"],
+          }),
+        config.syncRefreshDelayMs,
+      );
     },
     onError: (err) => {
       const message =
@@ -130,7 +141,7 @@ export default function NotificationTemplatesPage() {
             <CardGridSkeleton count={4} />
           </div>
           <div className="mt-4 hidden md:block">
-            <TableSkeleton count={5} />
+            <TableSkeleton count={5} columns={6} />
           </div>
         </>
       ) : templates.length === 0 ? (
@@ -154,6 +165,7 @@ export default function NotificationTemplatesPage() {
                 key={template.id}
                 template={template}
                 canManage={canManage}
+                toggleDisabled={toggleMutation.isPending}
                 onToggle={() => toggleMutation.mutate(template.id)}
                 onEditVariables={() => navigate(editVariablesHref(template.id))}
               />
@@ -195,6 +207,9 @@ export default function NotificationTemplatesPage() {
                         : "cursor-pointer opacity-50 hover:bg-gray-50"
                     }
                     onClick={() => navigate(editVariablesHref(template.id))}
+                    {...activateOnKey(() =>
+                      navigate(editVariablesHref(template.id)),
+                    )}
                   >
                     <TableCell className="px-6 py-3">
                       <div className="text-sm font-semibold text-gray-950">
@@ -267,11 +282,13 @@ export default function NotificationTemplatesPage() {
 function TemplateCard({
   template,
   canManage,
+  toggleDisabled,
   onToggle,
   onEditVariables,
 }: {
   template: NotificationTemplate;
   canManage: boolean;
+  toggleDisabled: boolean;
   onToggle: () => void;
   onEditVariables: () => void;
 }) {
@@ -303,7 +320,7 @@ function TemplateCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onToggle}>
+                <DropdownMenuItem disabled={toggleDisabled} onClick={onToggle}>
                   {template.is_active ? t("deactivate") : t("activate")}
                 </DropdownMenuItem>
               </DropdownMenuContent>

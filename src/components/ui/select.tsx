@@ -1,15 +1,14 @@
 import * as SelectPrimitive from "@radix-ui/react-select";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-import CareIcon from "@/CAREUI/icons/CareIcon";
-
 function Select({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  // Workaround to prevent the select from being cleared when the value is
-  // null while used with react-hook-form.
+  // This is a workaround to prevent the select from being empty when the value is null when used along with react hook form
+  // TODO: revert this once @radix-ui/react-select solves this
   return (
     <SelectPrimitive.Root
       data-slot="select"
@@ -21,6 +20,7 @@ function Select({
       }}
     />
   );
+  // return <SelectPrimitive.Root data-slot="select" {...props} />;
 }
 
 function SelectGroup({
@@ -55,7 +55,7 @@ function SelectTrigger({
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <CareIcon icon="l-angle-down" className="size-4 opacity-50" />
+        <ChevronDownIcon className="size-4 opacity-50" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -128,7 +128,7 @@ function SelectItem({
     >
       <span className="absolute right-2 flex size-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
-          <CareIcon icon="l-check" className="size-4" />
+          <CheckIcon className="size-4" />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -165,7 +165,7 @@ function SelectScrollUpButton({
       )}
       {...props}
     >
-      <CareIcon icon="l-angle-up" className="size-4" />
+      <ChevronUpIcon className="size-4" />
     </SelectPrimitive.ScrollUpButton>
   );
 }
@@ -183,7 +183,7 @@ function SelectScrollDownButton({
       )}
       {...props}
     >
-      <CareIcon icon="l-angle-down" className="size-4" />
+      <ChevronDownIcon className="size-4" />
     </SelectPrimitive.ScrollDownButton>
   );
 }

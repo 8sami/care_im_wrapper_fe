@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { patientApi, userApi } from "@/lib/api/care";
 import { notificationApi } from "@/lib/api/notifications";
+import { config } from "@/lib/config";
 import { HttpError, mutate, query } from "@/lib/request";
 import { NotificationEventWrite } from "@/lib/types/notifications";
 
@@ -59,7 +60,7 @@ export default function NotificationCreateEventPage() {
     "patient-search",
     (search) =>
       query.debounced(patientApi.list, {
-        queryParams: { name: search, limit: 10 },
+        queryParams: { name: search, limit: config.searchResultsLimit },
       }),
     (p) => ({ id: p.id, label: p.name, sublabel: p.phone_number }),
   );
@@ -67,7 +68,7 @@ export default function NotificationCreateEventPage() {
     "staff-search",
     (search) =>
       query.debounced(userApi.list, {
-        queryParams: { search, limit: 10 },
+        queryParams: { search, limit: config.searchResultsLimit },
       }),
     (u) => ({
       id: u.id,

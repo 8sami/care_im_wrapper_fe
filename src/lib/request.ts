@@ -1,3 +1,4 @@
+import { config } from "@/lib/config";
 import { sleep } from "@/lib/utils";
 
 type QueryParamValue =
@@ -209,7 +210,7 @@ const debouncedQuery = <Route extends ApiRoute<unknown, unknown>>(
   options?: ApiCallOptions<Route> & { debounceInterval?: number },
 ) => {
   return async ({ signal }: { signal: AbortSignal }) => {
-    await sleep(options?.debounceInterval ?? 500);
+    await sleep(options?.debounceInterval ?? config.searchDebounceMs, signal);
     return query(route, { ...options })({ signal });
   };
 };

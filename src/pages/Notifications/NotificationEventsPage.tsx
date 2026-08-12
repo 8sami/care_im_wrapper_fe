@@ -6,7 +6,11 @@ import { toast } from "sonner";
 import { notificationApi } from "@/lib/api/notifications";
 import { config } from "@/lib/config";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
-import { hasPermission } from "@/lib/permissions";
+import {
+  PERMISSION_CREATE_NOTIFICATION_EVENT,
+  PERMISSION_DISPATCH_NOTIFICATION_EVENT,
+  hasPermission,
+} from "@/lib/permissions";
 import { HttpError, mutate, query } from "@/lib/request";
 import {
   NOTIFICATION_STATUS_BADGE,
@@ -130,11 +134,11 @@ export default function NotificationEventsPage() {
     useState<NotificationEvent | null>(null);
 
   const canCreate = hasPermission(
-    "can_create_notification_event",
+    PERMISSION_CREATE_NOTIFICATION_EVENT,
     facility?.permissions ?? [],
   );
   const canDispatch = hasPermission(
-    "can_dispatch_notification_event",
+    PERMISSION_DISPATCH_NOTIFICATION_EVENT,
     facility?.permissions ?? [],
   );
 
@@ -343,7 +347,13 @@ export default function NotificationEventsPage() {
                       >
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            {/* An icon-only button has no accessible name of its own, so
+                                screen readers announce nothing here. */}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={t("actions")}
+                            >
                               <CareIcon icon="l-ellipsis-v" />
                             </Button>
                           </DropdownMenuTrigger>

@@ -6,6 +6,9 @@
   ],
   "compilerOptions": {
     "baseUrl": ".",
+    // baseUrl is deprecated in TS 7.0 but still drives the "@/*" paths below; without this
+    // the deprecation is an error and `tsc --noEmit` cannot be used as a check.
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@/*": ["./src/*"]
     }

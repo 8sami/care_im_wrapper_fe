@@ -8,7 +8,10 @@ import { z } from "zod";
 
 import { notificationApi } from "@/lib/api/notifications";
 import { expressionSchemaForProvider } from "@/lib/notificationTemplateValidation";
-import { hasPermission } from "@/lib/permissions";
+import {
+  PERMISSION_MANAGE_NOTIFICATION_TEMPLATE,
+  hasPermission,
+} from "@/lib/permissions";
 import { HttpError, mutate, query } from "@/lib/request";
 import {
   NotificationSchemaField,
@@ -261,7 +264,7 @@ export default function NotificationTemplateVariablesPage({
   const { t } = useTranslation();
   const auth = useContext(window.AuthUserContext);
   const canManage = hasPermission(
-    "can_manage_notification_template",
+    PERMISSION_MANAGE_NOTIFICATION_TEMPLATE,
     auth?.user?.permissions ?? [],
   );
 
@@ -401,13 +404,25 @@ function TemplateVariablesEditor({
         err.cause.errors !== null
       ) {
         const fieldErrors = err.cause.errors as Record<string, string>;
+        const unmatched: string[] = [];
         let matched = false;
         for (const [key, message] of Object.entries(fieldErrors)) {
           const index = keys.indexOf(key);
           if (index >= 0) {
             form.setError(`variables.${index}`, { type: "server", message });
             matched = true;
+          } else {
+            unmatched.push(`${key}: ${message}`);
           }
+        }
+        // A key the server rejected but this form has no field for -- a mapping left over
+        // from an earlier version of the template. Naming it is the only way the user can
+        // act on it, since there is nothing on screen to correct.
+        if (unmatched.length > 0) {
+          toast.error(
+            t("variable_mapping_stale_keys", { errors: unmatched.join("; ") }),
+          );
+          return;
         }
         if (matched) {
           toast.error(t("variable_mapping_update_failed"));

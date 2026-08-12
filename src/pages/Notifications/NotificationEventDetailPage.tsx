@@ -6,7 +6,10 @@ import { toast } from "sonner";
 import { notificationApi } from "@/lib/api/notifications";
 import { config } from "@/lib/config";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
-import { hasPermission } from "@/lib/permissions";
+import {
+  PERMISSION_DISPATCH_NOTIFICATION_EVENT,
+  hasPermission,
+} from "@/lib/permissions";
 import { HttpError, mutate, query } from "@/lib/request";
 import {
   NOTIFICATION_STATUS_BADGE,
@@ -171,7 +174,7 @@ export default function NotificationEventDetailPage({
   });
 
   const canDispatch = hasPermission(
-    "can_dispatch_notification_event",
+    PERMISSION_DISPATCH_NOTIFICATION_EVENT,
     facility?.permissions ?? [],
   );
 

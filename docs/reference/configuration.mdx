@@ -1,0 +1,30 @@
+# Configuration
+
+Defaults live in `src/lib/config.ts`. Override them per deployment by putting a `config` object in the plugin's care_fe registration — see [how-to/register-the-plugin](../how-to/register-the-plugin.mdx).
+
+| Key | Default | Effect |
+| --- | --- | --- |
+| `pollIntervalMs` | `5000` | How often the event detail page refetches while any recipient is unsettled |
+| `syncRefreshDelayMs` | `3000` | Wait before refetching templates after a sync is queued |
+| `searchDebounceMs` | `500` | Debounce on the patient/staff pickers |
+| `searchMinLength` | `2` | Characters before a picker search fires |
+| `listPageSize` | `15` | Page size for the event and template lists |
+| `recipientsPageSize` | `10` | Page size for the recipients table |
+| `searchResultsLimit` | `10` | Max picker results |
+| `catalogFetchLimit` | `100` | One-shot fetch size for triggers and templates |
+| `catalogStaleMs` | `300000` | How long a fetched catalogue stays fresh |
+
+Every value must be a finite number `>= 0`. Anything else is ignored and the default is used — no error.
+
+Example:
+
+```json
+{
+  "slug": "care_im_wrapper",
+  "meta": {
+    "name": "care_im_wrapper",
+    "url": "https://your-host/assets/remoteEntry.js",
+    "config": { "listPageSize": 25, "pollIntervalMs": 10000 }
+  }
+}
+```

@@ -1,0 +1,40 @@
+# Architecture
+
+## The plugin is a remote, not an app
+
+`vite.config.mts` builds this repo as a module-federation remote exposing one thing:
+
+```ts
+exposes: { "./manifest": "./src/manifest.tsx" }
+```
+
+The build writes `dist/assets/remoteEntry.js`. care_fe fetches that file in the browser, reads the manifest, and mounts the routes it declares. Running `npm run preview` serves the remote — opening it in a browser shows nothing useful, because there is no app here.
+
+Shared dependencies (`react`, `react-dom`, `react-i18next`, `@tanstack/react-query`, `raviger`, `sonner`) come from the host at runtime. That is why the plugin's toasts land in care_fe's toaster and its routes work with care_fe's router.
+
+## No dynamic imports
+
+`src/routes.tsx` uses static imports only. A `import()` or `React.lazy()` inside a federated module resolves its chunk URLs against the **host's** origin, not the plugin's, so the chunk 404s once care_fe mounts it. The whole plugin ships in one chunk instead.
+
+## Types are copied, not imported
+
+`src/lib/types/` mirrors backend and care_fe types by hand. The plugin cannot import from either:
+
+- care_fe is the host at runtime, not a build-time dependency
+- the backend is Python
+
+So `BadgeVariant`, `NotificationEvent`, `FacilityRead` and friends are shape-matched locally. When the backend changes, these must be updated by hand — nothing catches the drift.
+
+`src/components/Common/Page.tsx` is vendored from care_fe for the same reason, minus its `shortCutContext` prop, which depends on a host context the plugin can't reach.
+
+## Translations
+
+care_fe derives an i18next namespace from the plugin's registered `meta.name` and fetches `{plugin origin}/locale/{lang}.json`. `src/hooks/useTranslation.ts` reads the `care_im_wrapper` namespace.
+
+If `meta.name` is registered as anything other than `care_im_wrapper`, every screen renders raw keys — `new_notification` instead of "New notification". Nothing errors.
+
+## Config injection
+
+care_fe writes operator-supplied config to `window.__CARE_PLUGIN_RUNTIME__.meta[slug].config`. `src/lib/config.ts` reads it lazily on first access, because care_fe populates that global in an effect that can run after this module loads. Values are coerced; anything invalid falls back to the default.
+
+See [reference/configuration](../reference/configuration.mdx) for the keys.

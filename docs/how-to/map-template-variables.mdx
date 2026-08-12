@@ -1,0 +1,41 @@
+# Map template variables
+
+Needs `can_manage_notification_template`. Without it the page is read-only.
+
+A template arrives from the provider with variables in its body — `Hello {{patient_name}}, your appointment is on {{date}}.` The mapping tells CARE what to put in each one at send time.
+
+## Do it
+
+1. **Notification templates** in the admin sidebar.
+2. Click the template. You get one input per variable in the body.
+3. Write an expression for each.
+4. **Preview** renders the message with sample values. Use it — a mapping that saves cleanly can still produce nonsense.
+5. **Save**.
+
+## What an expression looks like
+
+Jinja2, wrapped in `{{ }}`:
+
+```
+{{ object.patient.name }}
+{{ object.token_slot.start_datetime|date('%d %b %Y') }}
+```
+
+`object` is the thing that fired the notification — a booking, a patient, a report — decided by the trigger linked to this template.
+
+Rules the backend enforces:
+
+- every variable needs a value
+- every value must be wrapped in `{{ ... }}`
+
+Otherwise you get a per-field error, e.g. `Value must be a Jinja2 expression wrapped in {{ ... }}.`
+
+## Available fields
+
+The right-hand panel lists what `object` actually has for this template's trigger. Focus a variable input, then click a field to insert it.
+
+If it says the trigger isn't linked, the trigger has no context — nothing to pick from, so write the expression by hand. Manual triggers have no context by design: there's no related object.
+
+## Stale keys
+
+If the provider changed the template body, mapped keys that no longer exist in it are reported on save. Remove them.

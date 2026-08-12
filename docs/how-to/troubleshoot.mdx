@@ -1,0 +1,41 @@
+# Troubleshoot
+
+## Every screen shows raw keys like `new_notification`
+
+The i18next namespace didn't resolve. care_fe derives it from the plugin's registered `meta.name`, which must be exactly `care_im_wrapper`.
+
+Check the registration, then check `{plugin origin}/locale/en.json` returns JSON.
+
+## The plugin doesn't load at all
+
+Fetch `{plugin origin}/assets/remoteEntry.js` in a browser. Common causes:
+
+- URL points at `/remoteEntry.js` — the build writes it to `/assets/remoteEntry.js`
+- the preview server isn't running
+- the browser console shows a CORS or MIME-type error — see below
+
+## "CORS header missing" on a response that returned 200
+
+Usually not CORS. On ngrok's free tier, a cross-origin fetch hits an interstitial warning page: HTTP 200, HTML body, no CORS headers. The federation runtime fetches `remoteEntry.js` itself, so you cannot attach the `ngrok-skip-browser-warning` header to it.
+
+`curl` will appear to work, because curl isn't browser-like and never gets the interstitial. **Always reproduce in a browser.**
+
+Fix: serve the plugin same-origin with care_fe under a sub-path.
+
+## Changes to the source don't show up
+
+The tests and the preview server both serve `dist/`. Rebuild:
+
+```bash
+npm run build
+```
+
+Nothing watches for you unless you run `npm start`.
+
+## A chunk 404s against care_fe's origin
+
+Something added a dynamic `import()` or `React.lazy()`. Federated modules resolve chunk URLs against the host's origin. Use static imports — see [architecture](../explanation/architecture.mdx).
+
+## An event was created but isn't in the list
+
+The event has no facility. Check `facility` is being sent on create; without it the event is scoped to no facility and only a superuser can see it. Re-saving does not repair an existing one.

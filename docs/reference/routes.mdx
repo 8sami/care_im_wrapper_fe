@@ -1,0 +1,27 @@
+# Routes
+
+Declared in `src/routes.tsx`. care_fe mounts them at these paths.
+
+| Path | Screen | Gated on |
+| --- | --- | --- |
+| `/facility/:facilityId/settings/notifications` | Event list | facility read access |
+| `/facility/:facilityId/settings/notifications/new` | Create event | `can_create_notification_event` |
+| `/facility/:facilityId/settings/notifications/:eventId` | Event detail | facility read access |
+| `/admin/notification-templates` | Template list | `can_read_notification_template` |
+| `/admin/notification-templates/:templateId/variables` | Variable mapping | `can_manage_notification_template` to edit; read-only view otherwise |
+| `/im/wrapper/welcome` | Plugin smoke page | none |
+
+`new` is registered before `:eventId` so the literal segment wins.
+
+## Navigation entries
+
+From `src/manifest.tsx`:
+
+| Entry | Label | URL |
+| --- | --- | --- |
+| `navItems` | Notifications | `settings/notifications` — care_fe prefixes `/facility/{id}/` |
+| `adminNavItems` | Notification templates | `/admin/notification-templates` — not prefixed |
+
+## Facility access
+
+Every facility-scoped screen calls `useFacilityAccessGuard`. It fetches the facility, and treats failure as "wrong facility or no permission": toast, then redirect to `/`.

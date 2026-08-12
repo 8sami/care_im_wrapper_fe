@@ -1,0 +1,84 @@
+# Run the tests
+
+## Stop the Celery worker first
+
+**Non-negotiable.** The suite creates notification events. `care_im_wrapper` sweeps pending recipients every 120 seconds and dispatches them for real — no Dispatch click needed — and the fixture patients have real phone numbers.
+
+```bash
+docker stop care-celery-1
+```
+
+`tests/globalSetup.ts` checks this and refuses to run if the worker is up.
+
+## Three processes
+
+The plugin has no UI of its own, so the tests drive care_fe.
+
+| Process | Port | Command |
+| --- | --- | --- |
+| care backend, with `care_im_wrapper` installed | 9000 | your usual setup |
+| care_fe, built | 4000 | `npm run preview` in the care_fe checkout |
+| this plugin, built | 10120 | started by Playwright |
+
+## Setup
+
+```bash
+npm run playwright:install
+npm run build                                    # tests run against dist/
+docker exec care-backend-1 python manage.py seed_notification_test_data
+```
+
+The seed command creates a manual trigger and two templates. Without it three specs cannot run: no migration seeds a manual-type trigger, and templates only arrive from the provider, which needs credentials.
+
+`.env.local`:
+
+```env
+REACT_CARE_API_URL=http://localhost:9000
+CARE_FE_URL=http://localhost:4000
+PLUGIN_URL=http://localhost:10120
+```
+
+## Run
+
+```bash
+npm run playwright:test
+npm run playwright:test:ui
+npm run playwright:test:headed
+npm run playwright:show-report
+```
+
+## After a source change
+
+Rebuild. The tests hit `dist/`, not your source.
+
+```bash
+npm run build && npm run playwright:test
+```
+
+## What runs
+
+| Spec | Covers |
+| --- | --- |
+| `facility/settings/notifications/notificationCreate` | validation, recipient guard, trigger/template filtering, create → detail → list |
+| `facility/settings/notifications/notificationDispatch` | dispatch, disabled states |
+| `admin/notificationTemplates/templateList` | activate/deactivate, opening the mapping |
+| `admin/notificationTemplates/variableMapping` | authoring and persisting a mapping |
+
+Setup projects handle login, plugin registration and the facility id. `auth` is its own project so the others can depend on it — sharing one project makes the ordering luck, and it breaks when a stored token goes stale.
+
+## Cleanup
+
+`tests/globalTeardown.ts` deletes the events the suite created, by running the seed command with `--reset`. That also restores template state, so runs are repeatable.
+
+If it fails it says so loudly. Run it yourself before starting the worker again:
+
+```bash
+docker exec care-backend-1 python manage.py seed_notification_test_data --reset
+```
+
+## Writing more
+
+Follow care_fe's `tests/PLAYWRIGHT_GUIDE.md`. Two things specific to this repo:
+
+- Radix Select triggers and Switches are buttons, so their `<label for>` gives them no accessible name. Scope by the enclosing `[data-slot="form-item"]` instead of `getByRole("combobox", { name })`.
+- The patient and staff pickers are identical widgets. Scope assertions to one with `[data-slot="command"]`, or you'll hit strict-mode violations.

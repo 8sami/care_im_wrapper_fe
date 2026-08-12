@@ -138,6 +138,10 @@ export interface NotificationEventWrite {
   variable_values?: Record<string, unknown>;
   trigger_slug: string;
   template_slug: string;
+  // External id of the facility the event belongs to. A signal-created event derives this
+  // from its related object; a manual one has none, so the creating screen names it.
+  // Required by the backend, which also checks create permission in this facility.
+  facility: string;
   recipient_patient_ids?: string[];
   recipient_user_ids?: string[];
 }

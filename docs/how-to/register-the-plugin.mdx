@@ -1,0 +1,50 @@
+# Register the plugin with care_fe
+
+Two ways. Both point care_fe at this plugin's `remoteEntry.js`.
+
+## At build time
+
+Set `REACT_ENABLED_APPS` before building care_fe:
+
+```bash
+REACT_ENABLED_APPS=ohcnetwork/care_im_wrapper_fe@localhost:10120/assets/remoteEntry.js
+```
+
+Format is `org/repo` or `org/repo@host/path/to/remoteEntry.js`. Without the `@` part, care_fe resolves it to `https://{org}.github.io/{repo}`. Build-time plugins are read-only in care_fe's UI.
+
+## At runtime
+
+POST a `PlugConfig` row to the backend. Requires a superuser token. No care_fe rebuild.
+
+```http
+POST /api/v1/plug_config/
+{
+  "slug": "care_im_wrapper",
+  "meta": {
+    "name": "care_im_wrapper",
+    "url": "http://localhost:10120/assets/remoteEntry.js",
+    "package": "ohcnetwork/care_im_wrapper_fe"
+  }
+}
+```
+
+care_fe merges both sources; build-time entries win.
+
+## Three things that must be exact
+
+**`meta.name` must be `care_im_wrapper`.** care_fe derives the i18next namespace from it. Anything else and every screen renders raw keys like `new_notification`, with no error anywhere.
+
+**The URL ends in `/assets/remoteEntry.js`.** The build writes it there, not at the root. `/remoteEntry.js` is a 404.
+
+**The plugin origin must serve `/locale/en.json`.** care_fe fetches translations from the remote's own origin. `npm run build` copies `public/locale/` into `dist/`.
+
+## Serving it
+
+```bash
+npm run build
+npm run preview   # port 10120
+```
+
+`vite.config.mts` sets `cors: { origin: "*" }` on the preview server, which is what lets care_fe fetch the locale file cross-origin.
+
+For anything public-facing, serve the plugin on the same origin as care_fe under a sub-path. Separate origins bring CORS and, on ngrok free tier, an interstitial page — see [troubleshoot](./troubleshoot.mdx).

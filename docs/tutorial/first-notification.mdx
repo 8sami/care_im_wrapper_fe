@@ -1,0 +1,87 @@
+# Your first notification
+
+Gets the plugin running against a local CARE and sends one message end to end. About 20 minutes.
+
+You need a working care backend with `care_im_wrapper` installed, a care_fe checkout, and this repo.
+
+## 1. Build and serve the plugin
+
+```bash
+npm install
+npm run build
+npm run preview
+```
+
+Check `http://localhost:10120/assets/remoteEntry.js` returns JavaScript. That file is the whole plugin — there is no page to open.
+
+## 2. Start care_fe
+
+In the care_fe checkout, with `REACT_CARE_API_URL` pointing at your backend:
+
+```bash
+npm run build
+npm run preview     # port 4000
+```
+
+## 3. Register the plugin
+
+Log in as a superuser, then:
+
+```bash
+curl -X POST http://localhost:9000/api/v1/plug_config/ \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"slug":"care_im_wrapper","meta":{"name":"care_im_wrapper","url":"http://localhost:10120/assets/remoteEntry.js","package":"ohcnetwork/care_im_wrapper_fe"}}'
+```
+
+Reload care_fe and open a facility. **Notifications** now appears in the sidebar.
+
+Seeing `notifications` instead of "Notifications"? `meta.name` is wrong — it must be exactly `care_im_wrapper`.
+
+## 4. Get a trigger and a template
+
+Manual triggers aren't seeded by any migration, and templates only arrive from the provider. For a local run, seed both:
+
+```bash
+docker exec care-backend-1 python manage.py seed_notification_test_data
+```
+
+That creates one manual trigger and two templates, one active and one not.
+
+## 5. Map the template's variables
+
+**Notification templates** in the admin sidebar → the active seeded template.
+
+The body has `{{patient_name}}` and `{{date}}`. Give each one an expression — for a first run, literals are fine:
+
+```
+{{ "Yachana Desai" }}
+{{ "9 August" }}
+```
+
+Save.
+
+## 6. Create the notification
+
+Facility sidebar → **Notifications** → **New notification**.
+
+Title, the seeded manual trigger, the active template, and one patient. Create.
+
+You land on the detail page. The recipient is *pending* — nothing has been sent.
+
+## 7. Send it
+
+**Dispatch 1 pending**, confirm.
+
+The toast says how many were queued. The recipients table moves to *sent*, then *delivered* if the provider reports back. On failure, **See error** shows the provider's raw response.
+
+## Where this actually sends
+
+To the real phone number on the patient record, if the provider is configured. On a demo database those numbers are often real people's.
+
+Two things follow. Point the plugin at a test number before doing this on anything but your own machine. And know that pressing Dispatch is not what makes it send — a background sweep dispatches any pending recipient every two minutes on its own. Creating an event is the point of no return, not dispatching it.
+
+## Next
+
+- [Map template variables](../how-to/map-template-variables.mdx) properly, against a real context
+- [How a notification is put together](../explanation/notification-model.mdx)
+- [Run the tests](../how-to/run-the-tests.mdx)

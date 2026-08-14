@@ -41,7 +41,12 @@ export default [
       },
       parser: tsParser,
       parserOptions: {
-        project: ["./tsconfig.app.json", "./tsconfig.node.json"],
+        project: [
+          "./tsconfig.app.json",
+          "./tsconfig.node.json",
+          // Playwright specs and config; typed by tests/tsconfig.json.
+          "./tests/tsconfig.json",
+        ],
         tsconfigRootDir,
       },
     },
@@ -64,7 +69,12 @@ export default [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: ["./tsconfig.app.json", "./tsconfig.node.json"],
+        project: [
+          "./tsconfig.app.json",
+          "./tsconfig.node.json",
+          // Playwright specs and config; typed by tests/tsconfig.json.
+          "./tests/tsconfig.json",
+        ],
         tsconfigRootDir,
       },
     },

@@ -1,0 +1,46 @@
+# How a notification is put together
+
+Four objects:
+
+```
+Trigger  ──┐
+           ├──> Event ──> Recipient (one per person) ──> status history
+Template ──┘
+```
+
+**Trigger** — why a message is being sent. Two types:
+
+- `signal` — fired by CARE itself (appointment booked, document ready). Seeded by migrations.
+- `manual` — a staff member sending something by hand. The create form only offers these; the backend rejects a signal trigger on that endpoint.
+
+**Template** — the provider-approved message. Templates are pulled from the provider by a sync; you cannot write one in CARE. Each has an approval status and an active flag, and only active ones can be picked.
+
+**Event** — one notification: a title, a trigger, a template, and a set of recipients.
+
+**Recipient** — one person, with the phone number captured at creation time, the resolved values actually sent, and a status history (`sent` → `delivered` → `read`, or `failed`). `latest_status = null` means not yet dispatched.
+
+## Variables
+
+A template body contains variables: `Hello {{patient_name}}, your appointment is on {{date}}.`
+
+The mapping says where each value comes from — a Jinja2 expression evaluated against the event's context, e.g. `{{ object.token_slot.start_datetime|date('%d %b %Y') }}`. Every variable needs one.
+
+Signal triggers have a context (a booking, a patient), so the mapping can reach into it, and the available-fields picker lists what's there. A manual trigger has no related object, so its picker is empty.
+
+## Facility scoping
+
+An event belongs to one facility. A signal event derives it from its related object. A manual event has no related object, so the create form sends `facility` explicitly.
+
+This matters more than it looks: the event list is filtered by facility, and authorization resolves permissions through the event's facility. An event with no facility is invisible in the list and readable only by a superuser — and re-saving cannot fix it, because the facility is recomputed on every save.
+
+## Sending is asynchronous
+
+Both sync and dispatch return `202` immediately and hand off to Celery. Nothing is sent inside the request.
+
+Dispatch happens three ways:
+
+1. signal events dispatch in real time
+2. the Dispatch button queues the event's pending recipients
+3. a periodic sweep picks up **any** recipient still at `latest_status = null`, every 120 seconds, ignoring facility
+
+Point 3 is the one that surprises people. A recipient that exists is a message that will be sent, whether or not anyone pressed anything.

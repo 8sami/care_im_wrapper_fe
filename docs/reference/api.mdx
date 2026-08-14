@@ -1,0 +1,56 @@
+# API
+
+All plugin endpoints are under `/api/care_im_wrapper/`. Declared in `src/lib/api/notifications.ts`.
+
+## Endpoints
+
+| Method | Path | Used by |
+| --- | --- | --- |
+| GET | `notification-triggers/` | trigger dropdowns and badges |
+| GET | `notification-templates/` | template list, create form |
+| GET | `notification-templates/{id}/` | variable mapping page |
+| GET | `notification-templates/{id}/schema/` | available-fields picker |
+| POST | `notification-templates/sync/` | "Sync templates" — returns 202, work happens in Celery |
+| POST | `notification-templates/{id}/toggle_active/` | activate / deactivate |
+| POST | `notification-templates/{id}/set_variable_mapping/` | save mapping |
+| POST | `notification-templates/{id}/preview_variable_mapping/` | render preview |
+| GET | `notification-events/` | event list — **requires `?facility=`** for non-superusers |
+| GET | `notification-events/{id}/` | event detail |
+| POST | `notification-events/` | create event |
+| POST | `notification-events/{id}/dispatch/` | dispatch — returns 202, sending happens in Celery |
+| GET | `notification-recipients/` | recipients table |
+
+Two core endpoints are also used, for the recipient pickers: `GET /api/v1/patient/` and `GET /api/v1/users/`.
+
+## Creating an event
+
+```json
+POST /api/care_im_wrapper/notification-events/
+{
+  "title": "Clinic closed tomorrow",
+  "description": "optional",
+  "is_urgent": false,
+  "trigger_slug": "<manual trigger>",
+  "template_slug": "<active template>",
+  "facility": "<facility external id>",
+  "recipient_patient_ids": ["<uuid>"],
+  "recipient_user_ids": []
+}
+```
+
+`facility` is required. A signal-fired event derives its facility from its related object; a manual one has none, so the caller names it. It also decides the permission check — `can_create_notification_event` is verified in that facility, not at organization level.
+
+Only manual-type triggers are accepted here. A signal trigger returns 400.
+
+## Variable mapping
+
+Every variable in the template body is required, and each value must be a Jinja2 expression wrapped in `{{ ... }}`. Anything else comes back as a per-field error:
+
+```json
+{"errors": {"patient_name": "Value must be a Jinja2 expression wrapped in {{ ... }}.",
+            "date": "Expression is required."}}
+```
+
+## Request layer
+
+`src/lib/request.ts` wraps these with `query()` and `mutate()` for React Query, and throws `HttpError` carrying the parsed body. Pass `silent: true` to suppress the default toast and handle the error yourself — every mutation in this plugin does, so it can show the backend's own `detail` string.

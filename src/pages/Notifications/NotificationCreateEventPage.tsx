@@ -9,6 +9,10 @@ import { z } from "zod";
 import { patientApi, userApi } from "@/lib/api/care";
 import { notificationApi } from "@/lib/api/notifications";
 import { config } from "@/lib/config";
+import {
+  PERMISSION_CREATE_NOTIFICATION_EVENT,
+  hasPermission,
+} from "@/lib/permissions";
 import { HttpError, mutate, query } from "@/lib/request";
 import { NotificationEventWrite } from "@/lib/types/notifications";
 
@@ -47,9 +51,16 @@ import { useTranslation } from "@/hooks/useTranslation";
 export default function NotificationCreateEventPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { facilityId } = useFacilityAccessGuard();
+  const { facilityId, facility } = useFacilityAccessGuard();
   const { triggers } = useNotificationTriggers();
   const { templates } = useNotificationTemplates();
+
+  // The events list hides the button that leads here, but this route is reachable by URL.
+  // Without this check the form only fails on submit, after the work of filling it in.
+  const canCreate = hasPermission(
+    PERMISSION_CREATE_NOTIFICATION_EVENT,
+    facility?.permissions ?? [],
+  );
 
   const manualTriggers = triggers.filter((tr) => tr.trigger_type === "manual");
   const activeTemplates = templates.filter((tpl) => tpl.is_active);
@@ -125,12 +136,27 @@ export default function NotificationCreateEventPage() {
       is_urgent: values.is_urgent,
       trigger_slug: values.trigger_slug,
       template_slug: values.template_slug,
+      // Scopes the event to the facility this screen was opened from. A manual event has no
+      // related object for the backend to derive it from, so without this it belongs to no
+      // facility -- invisible in the list this page returns to, and 403 for every
+      // non-superuser on the detail page we navigate to next.
+      facility: facilityId,
       recipient_patient_ids: patients.selected.map((p) => p.id),
       recipient_user_ids: staff.selected.map((s) => s.id),
     });
   };
 
   const backUrl = `/facility/${facilityId}/settings/notifications`;
+
+  if (facility && !canCreate) {
+    return (
+      <Page title={t("new_notification")}>
+        <div className="mx-auto mt-4 max-w-2xl text-center text-sm text-gray-500">
+          {t("no_permission_to_create_notification")}
+        </div>
+      </Page>
+    );
+  }
 
   return (
     <Page title={t("new_notification")}>

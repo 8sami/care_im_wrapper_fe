@@ -1,0 +1,18 @@
+{
+  "//": "Tests are Node-side, so this extends tsconfig.node.json rather than the browser app config. The `tests/*` path alias matches care_fe's, so ported specs import the same way.",
+  "extends": "../tsconfig.node.json",
+  "compilerOptions": {
+    "baseUrl": "../",
+    "ignoreDeprecations": "6.0",
+    "types": ["node"],
+    "paths": {
+      "tests/*": ["./tests/*"]
+    }
+  },
+  "include": [
+    "./**/*.ts",
+    "./**/*.spec.ts",
+    "./**/*.setup.ts",
+    "../playwright.config.ts"
+  ]
+}

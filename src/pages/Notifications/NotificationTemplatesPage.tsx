@@ -5,7 +5,10 @@ import { toast } from "sonner";
 
 import { notificationApi } from "@/lib/api/notifications";
 import { config } from "@/lib/config";
-import { hasPermission } from "@/lib/permissions";
+import {
+  PERMISSION_MANAGE_NOTIFICATION_TEMPLATE,
+  hasPermission,
+} from "@/lib/permissions";
 import { HttpError, mutate, query } from "@/lib/request";
 import {
   NOTIFICATION_CATEGORY_BADGE,
@@ -57,7 +60,7 @@ export default function NotificationTemplatesPage() {
   });
 
   const canManage = hasPermission(
-    "can_manage_notification_template",
+    PERMISSION_MANAGE_NOTIFICATION_TEMPLATE,
     auth?.user?.permissions ?? [],
   );
 
@@ -249,7 +252,11 @@ export default function NotificationTemplatesPage() {
                       {canManage && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={t("actions")}
+                            >
                               <CareIcon icon="l-ellipsis-v" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -315,7 +322,7 @@ function TemplateCard({
           >
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" aria-label={t("actions")}>
                   <CareIcon icon="l-ellipsis-v" />
                 </Button>
               </DropdownMenuTrigger>

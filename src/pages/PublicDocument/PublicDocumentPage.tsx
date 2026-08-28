@@ -6,7 +6,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { Loader2Icon, PrinterIcon } from "lucide-react";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { documentApi } from "@/lib/api/documents";
@@ -33,6 +33,50 @@ function Centered({ children }: { children: ReactNode }) {
     <div className="flex min-h-[60vh] items-center justify-center p-6 text-center">
       {children}
     </div>
+  );
+}
+
+/**
+ * A stored document is a finished PDF, so the browser is handed the file rather than an
+ * embed: <object>/<iframe> pdf rendering is unreliable on mobile (iOS Safari shows a
+ * blank frame), and these links are opened on phones.
+ *
+ * `replace` rather than an assignment, so this page does not sit in history between the
+ * document and wherever the reader came from -- going back would otherwise land here and
+ * immediately hand off again.
+ */
+function StoredFileHandoff({ url }: { url?: string }) {
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    if (url) window.location.replace(url);
+  }, [url]);
+
+  if (!url) {
+    return (
+      <Centered>
+        <p className="text-sm text-gray-600">
+          {t("document_link_unavailable_title", {
+            defaultValue: "This link is no longer available",
+          })}
+        </p>
+      </Centered>
+    );
+  }
+
+  return (
+    <Centered>
+      <div>
+        <Loader2Icon
+          className="mx-auto size-6 animate-spin text-gray-500"
+          aria-label="Loading"
+        />
+        {/* Shown if the handoff is blocked, so the reader is never left on a bare spinner. */}
+        <a href={url} className="mt-4 block text-sm underline" rel="noreferrer">
+          {t("open_document", { defaultValue: "Open document" })}
+        </a>
+      </div>
+    </Centered>
   );
 }
 
@@ -87,22 +131,7 @@ export default function PublicDocumentPage({ token }: { token: string }) {
   }
 
   if (doc.mode === "file") {
-    return (
-      <Centered>
-        <div>
-          <object
-            data={doc.file?.url}
-            type="application/pdf"
-            className="h-[80vh] w-[90vw]"
-            aria-label={t("document", { defaultValue: "Document" })}
-          >
-            <a href={doc.file?.url} target="_blank" rel="noreferrer">
-              {t("open_document", { defaultValue: "Open document" })}
-            </a>
-          </object>
-        </div>
-      </Centered>
-    );
+    return <StoredFileHandoff url={doc.file?.url} />;
   }
 
   const renderer = RENDERERS[doc.kind];

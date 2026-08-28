@@ -164,10 +164,10 @@ export default function PrintLayout({
   const alignment = logo?.url ? (logo?.alignment ?? "right") : "right";
 
   return (
-    <div
-      id="section-to-print"
-      className="relative w-full overflow-clip bg-white p-6 text-sm sm:p-10"
-    >
+    // No padding here, matching care_fe: printing shows this subtree alone, so any
+    // padding on it would stack on top of the @page margin and double the visual margin.
+    // The on screen inset belongs to the wrapper outside.
+    <div id="section-to-print" className="relative w-full overflow-clip">
       {pageStyle && <style>{pageStyle}</style>}
       {watermark?.enabled && watermark.text && (
         <TiledWatermark watermark={watermark} />

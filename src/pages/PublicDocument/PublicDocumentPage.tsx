@@ -156,7 +156,8 @@ export default function PublicDocumentPage({ token }: { token: string }) {
         </Button>
       </div>
 
-      <div className="shadow-2xl">
+      {/* Padding and paper look live out here, as they do in care_fe's PrintPreview. */}
+      <div className="bg-white p-6 text-sm shadow-2xl sm:p-10">
         <PrintLayout facility={doc.facility} templateSlug={doc.template_slug}>
           {renderer(doc)}
         </PrintLayout>

@@ -5,7 +5,7 @@
  * backend decides what it opens. This component never asks who the viewer is.
  */
 import { useQuery } from "@tanstack/react-query";
-import { Loader2Icon, PrinterIcon } from "lucide-react";
+import { Loader, PrinterIcon } from "lucide-react";
 import { ReactNode, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -67,10 +67,7 @@ function StoredFileHandoff({ url }: { url?: string }) {
   return (
     <Centered>
       <div>
-        <Loader2Icon
-          className="mx-auto size-6 animate-spin text-gray-500"
-          aria-label="Loading"
-        />
+        <Loader className="mx-auto h-8 w-8 animate-spin" aria-label="Loading" />
         {/* Shown if the handoff is blocked, so the reader is never left on a bare spinner. */}
         <a href={url} className="mt-4 block text-sm underline" rel="noreferrer">
           {t("open_document", { defaultValue: "Open document" })}
@@ -100,10 +97,8 @@ export default function PublicDocumentPage({ token }: { token: string }) {
   if (isLoading) {
     return (
       <Centered>
-        <Loader2Icon
-          className="size-6 animate-spin text-gray-500"
-          aria-label="Loading"
-        />
+        {/* Same spinner care_fe's print page shows while the report loads. */}
+        <Loader className="h-8 w-8 animate-spin" aria-label="Loading" />
       </Centered>
     );
   }

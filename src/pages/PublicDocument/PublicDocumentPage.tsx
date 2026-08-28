@@ -5,7 +5,7 @@
  * backend decides what it opens. This component never asks who the viewer is.
  */
 import { useQuery } from "@tanstack/react-query";
-import { Loader, PrinterIcon } from "lucide-react";
+import { PrinterIcon } from "lucide-react";
 import { ReactNode, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -66,13 +66,10 @@ function StoredFileHandoff({ url }: { url?: string }) {
 
   return (
     <Centered>
-      <div>
-        <Loader className="mx-auto h-8 w-8 animate-spin" aria-label="Loading" />
-        {/* Shown if the handoff is blocked, so the reader is never left on a bare spinner. */}
-        <a href={url} className="mt-4 block text-sm underline" rel="noreferrer">
-          {t("open_document", { defaultValue: "Open document" })}
-        </a>
-      </div>
+      {/* The redirect fires on its own; this is here for when it is blocked. */}
+      <a href={url} className="text-sm underline" rel="noreferrer">
+        {t("open_document", { defaultValue: "Open document" })}
+      </a>
     </Centered>
   );
 }
@@ -94,13 +91,10 @@ export default function PublicDocumentPage({ token }: { token: string }) {
     retry: false,
   });
 
+  // Nothing while fetching: care_fe already shows its own loader over this page while
+  // the plug resolves, and a second spinner straight after it just flickers.
   if (isLoading) {
-    return (
-      <Centered>
-        {/* Same spinner care_fe's print page shows while the report loads. */}
-        <Loader className="h-8 w-8 animate-spin" aria-label="Loading" />
-      </Centered>
-    );
+    return null;
   }
 
   // Expired, revoked, unknown and withdrawn all arrive as the same 404, deliberately, so

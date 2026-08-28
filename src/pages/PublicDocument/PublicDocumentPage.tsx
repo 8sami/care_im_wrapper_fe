@@ -6,7 +6,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { PrinterIcon } from "lucide-react";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { documentApi } from "@/lib/api/documents";
@@ -45,11 +45,22 @@ function Centered({ children }: { children: ReactNode }) {
  * document and wherever the reader came from -- going back would otherwise land here and
  * immediately hand off again.
  */
+const HANDOFF_FALLBACK_DELAY_MS = 2000;
+
 function StoredFileHandoff({ url }: { url?: string }) {
   const { t } = useTranslation();
+  // Held back so the link does not flash before the redirect fires. It only appears if
+  // the redirect has not taken the reader away by now, which means it was blocked.
+  const [redirectSeemsBlocked, setRedirectSeemsBlocked] = useState(false);
 
   useEffect(() => {
-    if (url) window.location.replace(url);
+    if (!url) return;
+    window.location.replace(url);
+    const timer = setTimeout(
+      () => setRedirectSeemsBlocked(true),
+      HANDOFF_FALLBACK_DELAY_MS,
+    );
+    return () => clearTimeout(timer);
   }, [url]);
 
   if (!url) {
@@ -64,9 +75,12 @@ function StoredFileHandoff({ url }: { url?: string }) {
     );
   }
 
+  if (!redirectSeemsBlocked) {
+    return null;
+  }
+
   return (
     <Centered>
-      {/* The redirect fires on its own; this is here for when it is blocked. */}
       <a href={url} className="text-sm underline" rel="noreferrer">
         {t("open_document", { defaultValue: "Open document" })}
       </a>

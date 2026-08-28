@@ -7,7 +7,6 @@ import { notificationApi } from "@/lib/api/notifications";
 import { config } from "@/lib/config";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import {
-  PERMISSION_CREATE_NOTIFICATION_EVENT,
   PERMISSION_DISPATCH_NOTIFICATION_EVENT,
   hasPermission,
 } from "@/lib/permissions";
@@ -133,10 +132,6 @@ export default function NotificationEventsPage() {
   const [dispatchTarget, setDispatchTarget] =
     useState<NotificationEvent | null>(null);
 
-  const canCreate = hasPermission(
-    PERMISSION_CREATE_NOTIFICATION_EVENT,
-    facility?.permissions ?? [],
-  );
   const canDispatch = hasPermission(
     PERMISSION_DISPATCH_NOTIFICATION_EVENT,
     facility?.permissions ?? [],
@@ -188,20 +183,7 @@ export default function NotificationEventsPage() {
   const baseUrl = `/facility/${facilityId}/settings/notifications`;
 
   return (
-    <Page
-      title={t("notifications")}
-      options={
-        canCreate ? (
-          <Button
-            className="w-full sm:w-auto"
-            onClick={() => navigate(`${baseUrl}/new`)}
-          >
-            <CareIcon icon="l-plus" />
-            {t("new_notification")}
-          </Button>
-        ) : undefined
-      }
-    >
+    <Page title={t("notifications")}>
       <div className="mt-4 flex flex-col gap-4 border-t border-gray-200 py-4 md:flex-row md:items-center md:justify-between">
         <Tabs
           value={qParams.is_urgent === "true" ? "urgent" : "all"}

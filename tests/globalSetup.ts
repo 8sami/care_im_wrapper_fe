@@ -22,7 +22,7 @@ interface LocalStorageItem {
  * with `playwright-db.sh reset`, which shells into a local care checkout at
  * `$CARE_BACKEND_DIR/.venv/bin/python`. This plugin is developed against a backend running
  * in Docker, where no such venv exists, so the reset path could not run. What this suite
- * actually needs from a snapshot -- a manual trigger and two templates -- comes from the
+ * actually needs from a snapshot -- a trigger and two templates -- comes from the
  * `seed_notification_test_data` management command instead, which is idempotent and works
  * the same locally and in CI. Add the snapshot back if accumulated state ever causes flakes.
  */

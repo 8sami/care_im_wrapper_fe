@@ -28,7 +28,7 @@ npm run build                                    # tests run against dist/
 docker exec care-backend-1 python manage.py seed_notification_test_data
 ```
 
-The seed command creates a manual trigger and two templates. Without it three specs cannot run: no migration seeds a manual-type trigger, and templates only arrive from the provider, which needs credentials.
+The seed command creates two templates and the trigger the dispatch specs file their events under. Without it three specs cannot run: templates only arrive from the provider, which needs credentials.
 
 `.env.local`:
 
@@ -59,8 +59,7 @@ npm run build && npm run playwright:test
 
 | Spec | Covers |
 | --- | --- |
-| `facility/settings/notifications/notificationCreate` | validation, recipient guard, trigger/template filtering, create → detail → list |
-| `facility/settings/notifications/notificationDispatch` | dispatch, disabled states |
+| `facility/settings/notifications/notificationDispatch` | dispatch, disabled states (events seeded via `seed_notification_test_data --create-event`) |
 | `admin/notificationTemplates/templateList` | activate/deactivate, opening the mapping |
 | `admin/notificationTemplates/variableMapping` | authoring and persisting a mapping |
 

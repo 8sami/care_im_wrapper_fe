@@ -1,6 +1,5 @@
 import Layout from "@/components/Common/Layout";
 
-import NotificationCreateEventPage from "./pages/Notifications/NotificationCreateEventPage";
 import NotificationEventDetailPage from "./pages/Notifications/NotificationEventDetailPage";
 import NotificationEventsPage from "./pages/Notifications/NotificationEventsPage";
 import NotificationTemplateVariablesPage from "./pages/Notifications/NotificationTemplateVariablesPage";
@@ -19,12 +18,6 @@ const routes = {
   "/facility/:facilityId/settings/notifications": () => (
     <Layout>
       <NotificationEventsPage />
-    </Layout>
-  ),
-  // Registered before the :eventId route so the literal "new" segment wins.
-  "/facility/:facilityId/settings/notifications/new": () => (
-    <Layout>
-      <NotificationCreateEventPage />
     </Layout>
   ),
   "/facility/:facilityId/settings/notifications/:eventId": ({

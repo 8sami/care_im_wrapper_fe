@@ -32,7 +32,7 @@ care_fe merges both sources; build-time entries win.
 
 ## Three things that must be exact
 
-**`meta.name` must be `care_im_wrapper`.** care_fe derives the i18next namespace from it. Anything else and every screen renders raw keys like `new_notification`, with no error anywhere.
+**`meta.name` must be `care_im_wrapper`.** care_fe derives the i18next namespace from it. Anything else and every screen renders raw keys like `notifications`, with no error anywhere.
 
 **The URL ends in `/assets/remoteEntry.js`.** The build writes it there, not at the root. `/remoteEntry.js` is a 404.
 

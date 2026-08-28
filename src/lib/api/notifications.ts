@@ -3,7 +3,6 @@ import { FacilityRead } from "@/lib/types/facility";
 import {
   NotificationEvent,
   NotificationEventDispatchResponse,
-  NotificationEventWrite,
   NotificationRecipient,
   NotificationTemplate,
   NotificationTemplateSchema,
@@ -64,12 +63,6 @@ export const notificationApi = apiRoutes({
   events_retrieve: {
     path: `${BASE}/notification-events/{id}/`,
     method: HttpMethod.GET,
-    TResponse: {} as NotificationEvent,
-  },
-  events_create: {
-    path: `${BASE}/notification-events/`,
-    method: HttpMethod.POST,
-    TRequest: {} as NotificationEventWrite,
     TResponse: {} as NotificationEvent,
   },
   events_dispatch: {

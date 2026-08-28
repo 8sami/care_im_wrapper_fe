@@ -19,7 +19,7 @@ export type BadgeVariant =
   | "orange"
   | "pink";
 
-export type TriggerType = "signal" | "manual";
+export type TriggerType = "signal";
 
 export interface NotificationTrigger {
   id: string;
@@ -125,27 +125,11 @@ export interface NotificationEvent {
   description: string | null;
   is_urgent: boolean;
   variable_values: Record<string, unknown> | null;
-  // Staff member who created a manual event; null for automatic signal-triggered events.
+  // Always null: events are created by backend signal handlers, never by a user.
   created_by: NotificationEventCreatedBy | null;
   created_date: string;
   recipients: NotificationRecipient[];
 }
-
-export interface NotificationEventWrite {
-  title: string;
-  description?: string;
-  is_urgent?: boolean;
-  variable_values?: Record<string, unknown>;
-  trigger_slug: string;
-  template_slug: string;
-  // External id of the facility the event belongs to. A signal-created event derives this
-  // from its related object; a manual one has none, so the creating screen names it.
-  // Required by the backend, which also checks create permission in this facility.
-  facility: string;
-  recipient_patient_ids?: string[];
-  recipient_user_ids?: string[];
-}
-
 export interface NotificationEventDispatchResponse {
   detail: string;
 }
@@ -182,6 +166,5 @@ export const NOTIFICATION_CATEGORY_BADGE: Record<
 };
 
 export const TRIGGER_TYPE_BADGE: Record<TriggerType, BadgeVariant> = {
-  manual: "outline",
   signal: "secondary",
 };

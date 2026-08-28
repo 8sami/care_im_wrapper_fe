@@ -22,25 +22,7 @@ All plugin endpoints are under `/api/care_im_wrapper/`. Declared in `src/lib/api
 
 Two core endpoints are also used, for the recipient pickers: `GET /api/v1/patient/` and `GET /api/v1/users/`.
 
-## Creating an event
-
-```json
-POST /api/care_im_wrapper/notification-events/
-{
-  "title": "Clinic closed tomorrow",
-  "description": "optional",
-  "is_urgent": false,
-  "trigger_slug": "<manual trigger>",
-  "template_slug": "<active template>",
-  "facility": "<facility external id>",
-  "recipient_patient_ids": ["<uuid>"],
-  "recipient_user_ids": []
-}
-```
-
-`facility` is required. A signal-fired event derives its facility from its related object; a manual one has none, so the caller names it. It also decides the permission check — `can_create_notification_event` is verified in that facility, not at organization level.
-
-Only manual-type triggers are accepted here. A signal trigger returns 400.
+Events are read-only over the API. They are created by the backend's own signal handlers, so there is no POST endpoint for one.
 
 ## Variable mapping
 

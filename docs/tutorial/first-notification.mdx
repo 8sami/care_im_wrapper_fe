@@ -39,13 +39,13 @@ Seeing `notifications` instead of "Notifications"? `meta.name` is wrong — it m
 
 ## 4. Get a trigger and a template
 
-Manual triggers aren't seeded by any migration, and templates only arrive from the provider. For a local run, seed both:
+Templates only arrive from the provider, which needs credentials. For a local run, seed them:
 
 ```bash
 docker exec care-backend-1 python manage.py seed_notification_test_data
 ```
 
-That creates one manual trigger and two templates, one active and one not.
+That creates two templates, one active and one not, plus the trigger the seeded events below are filed under.
 
 ## 5. Map the template's variables
 
@@ -60,13 +60,20 @@ The body has `{{patient_name}}` and `{{date}}`. Give each one an expression — 
 
 Save.
 
-## 6. Create the notification
+## 6. Get an event to send
 
-Facility sidebar → **Notifications** → **New notification**.
+Events are filed by the backend's signal handlers, so the honest way is to do the thing that
+fires one — book an appointment for a patient with a phone number, and `appointment_confirmed`
+fires. To skip the setup, seed one directly instead:
 
-Title, the seeded manual trigger, the active template, and one patient. Create.
+```bash
+docker exec care-backend-1 python manage.py seed_notification_test_data \
+  --create-event "First notification" --facility <facility external id>
+```
 
-You land on the detail page. The recipient is *pending* — nothing has been sent.
+It prints the new event's id. Open it at
+`/facility/<facility id>/settings/notifications/<event id>`, or find it in the
+**Notifications** list. The recipient is *pending* — nothing has been sent.
 
 ## 7. Send it
 
@@ -78,7 +85,7 @@ The toast says how many were queued. The recipients table moves to *sent*, then 
 
 To the real phone number on the patient record, if the provider is configured. On a demo database those numbers are often real people's.
 
-Two things follow. Point the plugin at a test number before doing this on anything but your own machine. And know that pressing Dispatch is not what makes it send — a background sweep dispatches any pending recipient every two minutes on its own. Creating an event is the point of no return, not dispatching it.
+Two things follow. Point the plugin at a test number before doing this on anything but your own machine. And know that pressing Dispatch is not what makes it send — a background sweep dispatches any pending recipient every two minutes on its own. The event coming into existence is the point of no return, not dispatching it.
 
 ## Next
 

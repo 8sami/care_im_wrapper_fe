@@ -204,6 +204,21 @@ jobs:
           NODE_ENV: production
         run: npx playwright test --project=chromium --workers=1
 
+      # A run that matched no tests exits 0 and is indistinguishable from a passing one at
+      # the job level. This asserts the suite had something to do, and puts the counts on
+      # the run page so a green tick can be read as "eight tests passed", not "nothing ran".
+      - name: Check the suite actually ran
+        run: |
+          total=$(jq '[.. | objects | select(has("tests")) | .tests[]] | length' test-results.json)
+          passed=$(jq '[.. | objects | select(has("tests")) | .tests[]
+                        | select(.results[-1].status == "passed")] | length' test-results.json)
+          echo "Playwright reported $passed/$total test(s) passed" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$total" -eq 0 ]; then
+            echo "::error::The chromium project matched no tests"
+            exit 1
+          fi
+          echo "$passed/$total test(s) passed"
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

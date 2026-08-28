@@ -7,7 +7,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { PrinterIcon } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 
 import { documentApi } from "@/lib/api/documents";
 import { query } from "@/lib/request";
@@ -17,6 +16,8 @@ import { Button } from "@/components/ui/button";
 
 import DiagnosticReportPrintView from "@/components/print/DiagnosticReportPrintView";
 import PrintLayout from "@/components/print/PrintLayout";
+
+import { useTranslation } from "@/hooks/useTranslation";
 
 /**
  * Renderers for `mode: "render"` documents, keyed by the backend's kind slug.
@@ -67,9 +68,7 @@ function StoredFileHandoff({ url }: { url?: string }) {
     return (
       <Centered>
         <p className="text-sm text-gray-600">
-          {t("document_link_unavailable_title", {
-            defaultValue: "This link is no longer available",
-          })}
+          {t("document_link_unavailable_title")}
         </p>
       </Centered>
     );
@@ -82,7 +81,7 @@ function StoredFileHandoff({ url }: { url?: string }) {
   return (
     <Centered>
       <a href={url} className="text-sm underline" rel="noreferrer">
-        {t("open_document", { defaultValue: "Open document" })}
+        {t("open_document")}
       </a>
     </Centered>
   );
@@ -118,15 +117,10 @@ export default function PublicDocumentPage({ token }: { token: string }) {
       <Centered>
         <div className="max-w-md">
           <h1 className="text-lg font-semibold text-gray-900">
-            {t("document_link_unavailable_title", {
-              defaultValue: "This link is no longer available",
-            })}
+            {t("document_link_unavailable_title")}
           </h1>
           <p className="mt-2 text-sm text-gray-600">
-            {t("document_link_unavailable_body", {
-              defaultValue:
-                "It may have expired. Message the bot again to get a fresh link.",
-            })}
+            {t("document_link_unavailable_body")}
           </p>
         </div>
       </Centered>
@@ -142,9 +136,7 @@ export default function PublicDocumentPage({ token }: { token: string }) {
     return (
       <Centered>
         <p className="text-sm text-gray-600">
-          {t("document_type_unsupported", {
-            defaultValue: "This document cannot be displayed here.",
-          })}
+          {t("document_type_unsupported")}
         </p>
       </Centered>
     );
@@ -155,7 +147,7 @@ export default function PublicDocumentPage({ token }: { token: string }) {
       <div className="mb-3 flex justify-end print:hidden">
         <Button variant="primary" onClick={() => window.print()}>
           <PrinterIcon className="size-4" />
-          {t("print", { defaultValue: "Print" })}
+          {t("print")}
         </Button>
       </div>
 

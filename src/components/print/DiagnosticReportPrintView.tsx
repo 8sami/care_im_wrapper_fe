@@ -8,10 +8,10 @@
  * Two differences from that file, both because there is no signed-in user here:
  *  - it takes `report`, `files` and `facility` as props instead of fetching them itself
  *    (the public endpoint supplies all three, already signed);
- *  - PDF attachments render in an <object> rather than via react-pdf. care_fe rasterises
- *    each PDF page so it prints inline; matching that needs react-pdf plus a worker, and a
- *    worker URL does not resolve reliably from inside a federated remote. Images render
- *    identically. See the note on AttachmentList below.
+ *  - `PrintFooter` drops "printed by", since there is nobody signed in to name.
+ *
+ * Attachments follow care_fe exactly: react-pdf rasterises every page of a PDF so it
+ * prints inline with the report, and images render after them, each starting a new page.
  *
  * i18n: these vendored files import `useTranslation` from react-i18next directly rather
  * than this plug's `@/hooks/useTranslation`. That is deliberate — the labels here ("test",
@@ -20,9 +20,12 @@
  * would miss every one of them.
  */
 import { format } from "date-fns";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Document, Page } from "react-pdf";
 
 import { formatName, formatPatientAge } from "@/lib/format";
+import "@/lib/pdfWorker";
 import { DocumentAttachment } from "@/lib/types/documents";
 
 import { DiagnosticReportResultsTable } from "@/components/print/DiagnosticReportResultsTable";
@@ -53,52 +56,103 @@ function LabelledValue({
   );
 }
 
-function AttachmentList({ files }: { files: DocumentAttachment[] }) {
+function PDFRenderer({ fileUrl }: { fileUrl: string }) {
+  const [numPages, setNumPages] = useState<number>(0);
   const { t } = useTranslation();
 
-  const images = files.filter((file) => isExtension(file, IMAGE_EXTENSIONS));
-  const pdfs = files.filter((file) => isExtension(file, ["pdf"]));
+  return (
+    <div className="break-before-page">
+      <Document
+        file={fileUrl}
+        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+        error={<div className="text-red-500">{t("error_loading_pdf")}</div>}
+        loading={<div className="text-gray-500">{t("loading")}</div>}
+      >
+        <div className="flex w-full flex-col justify-center">
+          {Array.from(new Array(numPages), (_, index) => (
+            <Page
+              key={`page_${index + 1}`}
+              pageNumber={index + 1}
+              width={Math.min(window.innerWidth * 0.9, 600)}
+              scale={1.2}
+              renderTextLayer={false}
+              renderAnnotationLayer={false}
+            />
+          ))}
+        </div>
+      </Document>
+    </div>
+  );
+}
 
-  if (!images.length && !pdfs.length) return null;
+function ImageRenderer({
+  fileUrl,
+  fileName,
+}: {
+  fileUrl: string;
+  fileName?: string;
+}) {
+  const { t } = useTranslation();
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   return (
-    <div className="mt-8 space-y-12">
-      {pdfs.map((file) => (
-        <div key={file.id} className="break-before-page">
-          <div className="mb-2 text-sm font-medium text-gray-500">
-            {file.name}
+    <div className="break-before-page flex w-full flex-col justify-center">
+      {isLoading && (
+        <div className="py-4 text-center text-gray-500">{t("loading")}</div>
+      )}
+      {hasError && (
+        <div className="py-4 text-center text-red-500">
+          {t("error_loading_image")}
+        </div>
+      )}
+      <img
+        src={fileUrl}
+        alt={fileName || t("diagnostic_report_image")}
+        className={`mx-auto h-auto max-w-full ${isLoading || hasError ? "hidden" : ""}`}
+        style={{ maxWidth: "600px" }}
+        onLoad={() => setIsLoading(false)}
+        onError={() => {
+          setIsLoading(false);
+          setHasError(true);
+        }}
+      />
+    </div>
+  );
+}
+
+function AttachmentList({ files }: { files: DocumentAttachment[] }) {
+  const pdfFiles = files.filter((file) => isExtension(file, ["pdf"]));
+  const imageFiles = files.filter((file) =>
+    isExtension(file, IMAGE_EXTENSIONS),
+  );
+
+  if (!files.length) return null;
+
+  return (
+    <div className="mt-8">
+      {pdfFiles.length > 0 && (
+        <div className="mt-8">
+          <div className="space-y-12">
+            {pdfFiles.map((file) => (
+              <div key={`content-${file.id}`}>
+                <PDFRenderer fileUrl={file.url} />
+              </div>
+            ))}
           </div>
-          <object
-            data={file.url}
-            type="application/pdf"
-            className="h-[80vh] w-full print:hidden"
-            aria-label={file.name}
-          >
-            <a href={file.url} target="_blank" rel="noreferrer">
-              {file.name}
-            </a>
-          </object>
-          {/* Printed output cannot embed a PDF, so the reader gets its name instead of a
-              silently blank page. */}
-          <p className="hidden text-xs text-gray-500 print:block">
-            {t("attachment_available_online", { defaultValue: "Attachment:" })}{" "}
-            {file.name}
-          </p>
         </div>
-      ))}
-      {images.map((file) => (
-        <div
-          key={file.id}
-          className="break-before-page flex w-full flex-col justify-center"
-        >
-          <img
-            src={file.url}
-            alt={file.name}
-            className="mx-auto h-auto max-w-full"
-            style={{ maxWidth: "600px" }}
-          />
+      )}
+      {imageFiles.length > 0 && (
+        <div className="mt-8">
+          <div className="space-y-12">
+            {imageFiles.map((file) => (
+              <div key={`content-${file.id}`}>
+                <ImageRenderer fileUrl={file.url} fileName={file.name} />
+              </div>
+            ))}
+          </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }

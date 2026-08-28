@@ -6,12 +6,8 @@
  * @ 2ea00b1d0e5e8054591ec07058e030a44490d572
  * A federated plug cannot import host source. Re-sync by diffing against that commit.
  *
- * ONE DELIBERATE DIVERGENCE: care_fe renders each qualified range's *conditions* (the
- * "applies when patient is female / over 60" part) via `ConditionOperationSummary`, which
- * depends on `useTagConfigs` — an authenticated API hook. A patient reading this page has
- * no CARE session, so that cannot run here. The numeric ranges and their interpretation
- * labels are rendered; the condition text is omitted. Observations that carry their own
- * `reference_range` — the common case — are unaffected and render identically.
+ * Qualified-range conditions render through the vendored `ConditionOperationSummary`,
+ * matching care_fe. Its one divergence (server-resolved tag names) is documented there.
  *
  * i18n: these vendored files import `useTranslation` from react-i18next directly rather
  * than this plug's `@/hooks/useTranslation`. That is deliberate — the labels here ("test",
@@ -32,6 +28,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+import ConditionOperationSummary from "@/components/print/ConditionOperationSummary";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -83,6 +81,21 @@ export function DiagnosticReportResultsTable({
         key={qualifiedRange.id ?? index}
         className="flex flex-col gap-1 text-sm font-normal text-gray-500"
       >
+        <div className="flex flex-row space-x-2 divide-x divide-gray-300 text-sm">
+          {qualifiedRange.conditions?.map(
+            (condition: any, conditionIndex: number) => (
+              <span
+                className="pr-2 text-gray-900"
+                key={`condition-${conditionIndex}`}
+              >
+                <ConditionOperationSummary
+                  condition={condition}
+                  shortDisplay={true}
+                />
+              </span>
+            ),
+          )}
+        </div>
         {qualifiedRange.ranges?.map((range: any, rangeIndex: number) => {
           const rangeText = formatRange(range);
           const label = range.interpretation?.display;

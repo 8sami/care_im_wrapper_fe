@@ -1,11 +1,7 @@
 name: Playwright Tests
 
-# Ported from care_fe's .github/workflows/playwright.yaml, because this suite is a port of
-# care_fe's and drives care_fe itself. Where this differs from the host's workflow, the
-# reason is given at the step.
-#
-# The same four processes docs/how-to/run-the-tests.mdx sets up by hand. The plugin has no
-# UI of its own, so a run needs all of them standing up together:
+# Ported from care_fe's .github/workflows/playwright.yaml. The plugin has no UI of its own,
+# so a run needs four things standing up together:
 #
 #   care backend (:9000)  with care_im_wrapper installed and fixtures loaded
 #   care_fe      (:4000)  the host that mounts the federated remote
@@ -28,28 +24,23 @@ env:
   CARE_FE_REF: develop
   PLUGIN_BACKEND_REF: develop
 
-  # Read by playwright.config.ts (baseURL, webServer) and tests/helper/utils.ts.
   REACT_CARE_API_URL: http://localhost:9000
   CARE_FE_URL: http://localhost:4000
   PLUGIN_URL: http://localhost:10120
 
-  # tests/helper/seed.ts, tests/globalSetup.ts and tests/globalTeardown.ts shell into these
-  # containers by name. The care checkout directory decides them, so this matches `care/`.
+  # tests/helper/seed.ts and tests/globalTeardown.ts shell into these containers by name.
   CARE_BACKEND_CONTAINER: care-backend-1
   CARE_CELERY_CONTAINER: care-celery-1
 
-  # care reads this both when building the image (install_plugins.py) and at runtime
-  # (INSTALLED_APPS). The WhatsApp values are placeholders: the plugin's settings refuse to
-  # import without them, and the API URL points at a reserved TLD that cannot resolve, so a
-  # send that escaped the guards has nowhere to go.
+  # Read when building the image (install_plugins.py) and again at runtime (INSTALLED_APPS).
+  # The WhatsApp values are placeholders: the plugin's settings refuse to import without
+  # them, and the API URL is a reserved TLD that cannot resolve.
   ADDITIONAL_PLUGS: >-
     [{"name":"care_im_wrapper","package_name":"/app/care_im_wrapper","version":"","configs":{"WHATSAPP_API_URL":"https://graph.invalid/v25.0","WHATSAPP_ACCESS_TOKEN":"ci-placeholder-token","WHATSAPP_PHONE_NUMBER_ID":"ci-placeholder-phone-id","WHATSAPP_BUSINESS_ACCOUNT_ID":"ci-placeholder-waba-id","WHATSAPP_WEBHOOK_VERIFY_TOKEN":"ci-placeholder-verify-token","WHATSAPP_APP_SECRET":"ci-placeholder-app-secret"}}]
 
   COMPOSE_FILE: docker-compose.yaml:docker-compose.local.yaml
 
 jobs:
-  # care_fe shards this three ways behind a paths-filter job and aggregates the shards into
-  # a PR comment. Three spec files and eight tests do not earn that, so this is one job.
   e2e:
     name: E2E
     runs-on: ubuntu-latest
@@ -66,9 +57,8 @@ jobs:
           ref: ${{ env.CARE_REF }}
           path: care
 
-      # The backend half of this plugin. It is what care serves the plugin's API from, and
-      # it carries the seed_notification_test_data command the suite seeds and cleans up
-      # with. It has to sit inside the care checkout, which becomes /app in the image.
+      # Carries seed_notification_test_data, and must sit inside the care checkout, which
+      # becomes /app in the image.
       - name: Check out the plugin backend inside care
         uses: actions/checkout@v5
         with:
@@ -83,8 +73,6 @@ jobs:
           ref: ${{ env.CARE_FE_REF }}
           path: care_fe
 
-      # DISABLE_RATELIMIT and the fixed JWKS are what care_fe's workflow writes here, taken
-      # from the same committed file; ADDITIONAL_PLUGS is what makes care load this plugin.
       - name: Configure the backend
         working-directory: care
         run: |
@@ -97,9 +85,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # care_fe caches the images as tarballs and lets `make up` build them. This builds the
-      # image against the GHA layer cache instead, which the plugin's backend workflow
-      # already uses; `make up` then finds care_local present and only starts the services.
       - name: Build the care dev image
         uses: docker/build-push-action@v6
         with:
@@ -115,16 +100,15 @@ jobs:
         working-directory: care
         run: make docker_config_file=docker-compose.local.yaml up load-fixtures
 
-      # Non-negotiable, and the reason this job is safe to run at all. The suite creates
-      # notification events; care_im_wrapper sweeps pending recipients every ~2 minutes and
-      # dispatches them for real, to the real phone numbers in the fixture data.
-      # tests/globalSetup.ts asserts this and refuses to start while the worker is up.
+      # Non-negotiable. The suite creates notification events, and care_im_wrapper sweeps
+      # pending recipients every ~2 minutes and dispatches them for real, to the real phone
+      # numbers in the fixture data. tests/globalSetup.ts refuses to start while it is up.
       - name: Stop the celery worker
         working-directory: care
         run: docker compose stop celery
 
-      # Templates only ever arrive from the provider, which needs credentials, so without
-      # this the three specs have nothing to act on.
+      # Templates only ever arrive from the provider, so without this the specs have nothing
+      # to act on.
       - name: Seed the notification trigger and templates
         working-directory: care
         run: docker compose exec -T backend python manage.py seed_notification_test_data
@@ -138,9 +122,8 @@ jobs:
             package-lock.json
             care_fe/package-lock.json
 
-      # Install and build are separate steps, as in care_fe's workflow, because NODE_ENV
-      # belongs on the build alone: `npm ci` under NODE_ENV=production skips
-      # devDependencies, which is where the whole vite toolchain lives.
+      # NODE_ENV belongs on the build alone: `npm ci` under NODE_ENV=production skips
+      # devDependencies, where the vite toolchain lives.
       - name: Install care_fe dependencies
         working-directory: care_fe
         run: npm ci --prefer-offline
@@ -151,9 +134,8 @@ jobs:
           NODE_ENV: production
         run: npm run build
 
-      # care_fe's own suite starts this through playwright.config.ts webServer. Here the
-      # webServer slot belongs to the plugin's preview, so the host is started by hand and
-      # waited for. The port is passed explicitly rather than relying on the config default.
+      # playwright.config.ts points webServer at the plugin's preview, so the host is
+      # started here instead.
       - name: Serve care_fe
         working-directory: care_fe
         run: |
@@ -169,8 +151,7 @@ jobs:
           cat "$RUNNER_TEMP/care_fe-preview.log"
           exit 1
 
-      # The suite runs against dist/, so the build is a prerequisite; Playwright's webServer
-      # only serves what is already built.
+      # The suite runs against dist/.
       - name: Build the plugin
         run: |
           npm ci --prefer-offline
@@ -188,25 +169,21 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      # care_fe runs its setup project as a command of its own, which is why the chromium
-      # project declares no dependency on it under CI. Selecting `setup` also runs `auth`,
-      # through the dependency edge in playwright.config.ts.
+      # Run as its own command, which is why the chromium project declares no dependency on
+      # it under CI. Selecting `setup` also runs `auth`, through the dependency edge.
       - name: Run setup projects
         env:
           NODE_ENV: production
         run: npx playwright test --project=setup --workers=1
 
-      # care_fe runs four workers per shard. These specs share one backend's templates and
-      # seeded events, so they run serially.
+      # Serial: the specs share one backend's templates and seeded events.
       - name: Run E2E tests
         id: test
         env:
           NODE_ENV: production
         run: npx playwright test --project=chromium --workers=1
 
-      # A run that matched no tests exits 0 and is indistinguishable from a passing one at
-      # the job level. This asserts the suite had something to do, and puts the counts on
-      # the run page so a green tick can be read as "eight tests passed", not "nothing ran".
+      # A run that matched no tests exits 0 and looks identical to a passing one.
       - name: Check the suite actually ran
         run: |
           total=$(jq '[.. | objects | select(has("tests")) | .tests[]] | length' test-results.json)
@@ -230,9 +207,8 @@ jobs:
             test-results.json
           retention-days: 7
 
-      # tests/globalTeardown.ts already does this after a run that finishes. This is for the
-      # runs that do not: a cancelled job or a failure before teardown would otherwise leave
-      # recipients behind for the sweep to send the next time a worker starts.
+      # globalTeardown does this after a run that finishes; this covers the runs that do
+      # not, which would otherwise leave recipients for the sweep to send.
       - name: Clear seeded notification events
         if: always()
         working-directory: care

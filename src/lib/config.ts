@@ -10,16 +10,10 @@ interface WrapperConfig {
   pollIntervalMs: number;
   // Grace period before refetching templates after a sync is queued (a background task).
   syncRefreshDelayMs: number;
-  // Debounce before a search query fires (recipient/patient pickers).
-  searchDebounceMs: number;
-  // Minimum characters before a picker search runs.
-  searchMinLength: number;
   // Page size for the paginated admin lists (templates, events).
   listPageSize: number;
   // Page size for the recipients table on the event-detail page.
   recipientsPageSize: number;
-  // Cap on patient/user picker search results.
-  searchResultsLimit: number;
   // One-shot fetch size for a static catalog (all templates / all triggers).
   catalogFetchLimit: number;
   // How long a fetched catalog stays fresh before React Query refetches it.
@@ -29,11 +23,8 @@ interface WrapperConfig {
 const DEFAULTS: WrapperConfig = {
   pollIntervalMs: 5000,
   syncRefreshDelayMs: 3000,
-  searchDebounceMs: 500,
-  searchMinLength: 2,
   listPageSize: 15,
   recipientsPageSize: 10,
-  searchResultsLimit: 10,
   catalogFetchLimit: 100,
   catalogStaleMs: 5 * 60 * 1000,
 };

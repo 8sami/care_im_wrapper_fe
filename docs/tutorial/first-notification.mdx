@@ -81,6 +81,8 @@ It prints the new event's id. Open it at
 
 The toast says how many were queued. The recipients table moves to *sent*, then *delivered* if the provider reports back. On failure, **See error** shows the provider's raw response.
 
+A seeded event carries no related object, so a mapping that reaches into `object` resolves to nothing and the send fails on an empty parameter — which is why step 5 used literals. Book the appointment instead if you want to watch a real one render.
+
 ## Where this actually sends
 
 To the real phone number on the patient record, if the provider is configured. On a demo database those numbers are often real people's.

@@ -28,7 +28,7 @@ A trigger names the context its events carry (a booking, a patient), so the mapp
 
 An event belongs to one facility, derived from its related object when it is saved.
 
-This matters more than it looks: the event list is filtered by facility, and authorization resolves permissions through the event's facility. An event with no facility is invisible in the list and readable only by a superuser — and re-saving cannot fix it, because the facility is recomputed on every save.
+This matters more than it looks: the event list is filtered by facility, and authorization resolves permissions through the event's facility. An event with no facility is invisible in the list and readable only by a superuser. `save()` recomputes the facility only when a related object is present, so an event created without one keeps the facility it was given.
 
 ## Sending is asynchronous
 

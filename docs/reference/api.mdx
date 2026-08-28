@@ -6,8 +6,8 @@ All plugin endpoints are under `/api/care_im_wrapper/`. Declared in `src/lib/api
 
 | Method | Path | Used by |
 | --- | --- | --- |
-| GET | `notification-triggers/` | trigger dropdowns and badges |
-| GET | `notification-templates/` | template list, create form |
+| GET | `notification-triggers/` | trigger filter and badges |
+| GET | `notification-templates/` | template list |
 | GET | `notification-templates/{id}/` | variable mapping page |
 | GET | `notification-templates/{id}/schema/` | available-fields picker |
 | POST | `notification-templates/sync/` | "Sync templates" — returns 202, work happens in Celery |
@@ -16,11 +16,8 @@ All plugin endpoints are under `/api/care_im_wrapper/`. Declared in `src/lib/api
 | POST | `notification-templates/{id}/preview_variable_mapping/` | render preview |
 | GET | `notification-events/` | event list — **requires `?facility=`** for non-superusers |
 | GET | `notification-events/{id}/` | event detail |
-| POST | `notification-events/` | create event |
 | POST | `notification-events/{id}/dispatch/` | dispatch — returns 202, sending happens in Celery |
 | GET | `notification-recipients/` | recipients table |
-
-Two core endpoints are also used, for the recipient pickers: `GET /api/v1/patient/` and `GET /api/v1/users/`.
 
 Events are read-only over the API. They are created by the backend's own signal handlers, so there is no POST endpoint for one.
 

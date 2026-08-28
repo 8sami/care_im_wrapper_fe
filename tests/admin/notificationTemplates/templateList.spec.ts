@@ -17,8 +17,8 @@ test.describe("notification templates", () => {
   });
 
   test("activating a template flips its state", async ({ page }) => {
-    // Whether a template is active is what decides if staff can pick it when creating a
-    // notification, so this toggle is the plugin's real gate on which messages can be sent.
+    // Whether a template is active is what decides if a trigger can render through it,
+    // so this toggle is the plugin's real gate on which messages can be sent.
     const row = page
       .locator('[data-slot="table-row"]')
       .filter({ hasText: INACTIVE_TEMPLATE });

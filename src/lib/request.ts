@@ -51,6 +51,12 @@ interface ApiCallOptions<Route extends ApiRoute<unknown, unknown>> {
   signal?: AbortSignal;
   headers?: HeadersInit;
   baseUrl?: string;
+  /**
+   * Send no Authorization header. Required for endpoints reached by people who are
+   * not signed in to CARE at all -- without it an anonymous visitor sends
+   * `Bearer null`, which is meaningless and looks like a broken credential in logs.
+   */
+  noAuth?: boolean;
 }
 
 type HttpErrorCause = Record<string, unknown> | undefined;
@@ -118,13 +124,15 @@ const getQueryParams = (query: QueryParams) => {
   return qParams.toString();
 };
 
-export function getHeaders(additionalHeaders?: HeadersInit) {
+export function getHeaders(additionalHeaders?: HeadersInit, noAuth?: boolean) {
   const headers = new Headers(additionalHeaders);
-  const careAccessToken = localStorage.getItem("care_access_token")!;
+  const careAccessToken = localStorage.getItem("care_access_token");
 
   headers.set("Content-Type", "application/json");
   headers.set("Accept", "application/json");
-  headers.set("Authorization", `Bearer ${careAccessToken}`);
+  if (!noAuth && careAccessToken) {
+    headers.set("Authorization", `Bearer ${careAccessToken}`);
+  }
 
   return headers;
 }
@@ -160,7 +168,7 @@ async function request<Route extends ApiRoute<unknown, unknown>>(
 
   const fetchOptions: RequestInit = {
     method,
-    headers: getHeaders(options?.headers),
+    headers: getHeaders(options?.headers, options?.noAuth),
     signal: options?.signal,
   };
 

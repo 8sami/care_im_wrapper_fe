@@ -1,4 +1,4 @@
-@config '../tailwind.config.js';
+@config "../tailwind.config.js";
 
 .care-im-wrapper-container {
   @import "tailwindcss";
@@ -13,11 +13,21 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
+  /*
+    Scoped to the container on purpose. `@import "tailwindcss"` above is nested inside
+    .care-im-wrapper-container, so Tailwind emits its own rules under that selector; an
+    unscoped `*` here never outranks them, which left every uncoloured border utility
+    falling back to currentColor (i.e. black) instead of gray, unlike care_fe.
+
+    Written out rather than wrapped in :is(), because :is() may not contain pseudo
+    elements -- the browser drops the whole argument list, taking ::before and ::after
+    with it.
+  */
+  .care-im-wrapper-container *,
+  .care-im-wrapper-container ::after,
+  .care-im-wrapper-container ::before,
+  .care-im-wrapper-container ::backdrop,
+  .care-im-wrapper-container ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
 }

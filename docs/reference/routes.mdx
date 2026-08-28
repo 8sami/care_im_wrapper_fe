@@ -10,6 +10,19 @@ Declared in `src/routes.tsx`. care_fe mounts them at these paths.
 | `/admin/notification-templates/:templateId/variables` | Variable mapping | `can_manage_notification_template` to edit; read-only view otherwise |
 | `/im/wrapper/welcome` | Plugin smoke page | none |
 
+## Public routes
+
+Declared separately in `src/publicRoutes.tsx`, and merged into care_fe's routers for both
+signed-out and signed-in visitors. Anything here is world readable: the only thing between
+a stranger and the content is the capability in the URL, which the plug's own API enforces.
+
+| Path | Screen | Gated on |
+| --- | --- | --- |
+| `/public/documents/:token` | Patient-facing document | possession of the token |
+
+Adding one needs care_fe to support `publicRoutes` in its plug manifest. See
+[how-to/support-a-new-document](../how-to/support-a-new-document.mdx).
+
 ## Navigation entries
 
 From `src/manifest.tsx`:

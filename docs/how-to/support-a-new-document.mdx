@@ -1,0 +1,93 @@
+# Support a new document
+
+Patients open documents from a link the bot sends them, with no CARE account. This plug
+draws the page. Adding a document type is one entry on each side.
+
+Do the backend half first — see the wrapper's `docs/documents.md`. This page covers the
+frontend half.
+
+## Which half you need
+
+A document is one of two things:
+
+- **Something CARE has a print view for** — a lab report, a prescription, an invoice.
+  There is no PDF anywhere; the browser makes one when staff press Print. You copy that
+  print view here and draw it from data.
+- **Something already rendered as a PDF** — a discharge summary. Nothing to draw. The page
+  already hands those to the browser, so **there is nothing to do here at all**.
+
+The rest of this page is about the first kind.
+
+## 1. Copy the print view
+
+The plug cannot import from care_fe — module federation shares npm packages, not host
+source — so the component is copied into `src/components/print/`.
+
+Copy the care_fe component and split it so it takes its data as props rather than fetching
+it. The endpoint already supplies the record and the facility, so the fetching half goes
+away.
+
+Put a header on the copy naming where it came from:
+
+```tsx
+/**
+ * VENDORED from care_fe `src/pages/.../PrintInvoice.tsx` @ <commit sha>
+ * A federated plug cannot import host source. Re-sync by diffing against that commit.
+ */
+```
+
+That sha is how the next person re-syncs when care_fe changes. Without it they are hunting.
+
+Note any deliberate difference in the same header. Existing copies record three: no
+"printed by" (nobody is signed in), tag names arriving in the payload rather than from an
+authenticated lookup, and translations read from the host's default namespace.
+
+## 2. Translations
+
+Vendored print components use `useTranslation` from `react-i18next` directly, **not** this
+plug's `@/hooks/useTranslation`. Their labels are care_fe's own keys and live in the host's
+default namespace; the plug's hook scopes lookups to `care_im_wrapper` and would miss all
+of them.
+
+Strings you write yourself are the opposite: use `@/hooks/useTranslation` and put the
+English in `public/locale/en.json`, like every other page here.
+
+## 3. Register the renderer
+
+In `src/pages/PublicDocument/PublicDocumentPage.tsx`, add one line keyed on the same slug
+the backend registered:
+
+```tsx
+const RENDERERS: Record<string, (doc: PublicDocument) => ReactNode> = {
+  diagnostic_report: (doc) => (
+    <DiagnosticReportPrintView report={doc.report} files={doc.files} />
+  ),
+  invoice: (doc) => <InvoicePrintView invoice={doc.invoice} />,
+};
+```
+
+That is the whole wiring. The route, the token handling, the letterhead and the Print
+button are already there, and the URL does not change.
+
+## What you get for free
+
+`PrintLayout` wraps whatever you render in the facility's letterhead — logo, header and
+footer images, watermark, page size — resolved from the facility's print template config
+by the slug the backend sent. It is read live, so a facility editing its template in
+settings changes the next page anyone opens.
+
+## Two things that will bite you
+
+**Do not put padding on `#section-to-print`.** Printing shows that subtree alone, so any
+padding on it stacks on top of the `@page` margin and doubles the visual margin. Padding
+belongs on the wrapper outside, which is what care_fe does.
+
+**Give borders an explicit colour.** Tailwind is imported inside
+`.care-im-wrapper-container`, so its rules are emitted under that selector. A bare `border`
+resolves against `--color-gray-200` through the compatibility rule in `index.css`; if you
+find a border rendering black, that rule is not reaching your element.
+
+## Check it
+
+Open a link while signed out **and** while signed in — public routes are merged into both
+routers, and only one of those paths is exercised by day-to-day use.

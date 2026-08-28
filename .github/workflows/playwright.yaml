@@ -138,13 +138,18 @@ jobs:
             package-lock.json
             care_fe/package-lock.json
 
+      # Install and build are separate steps, as in care_fe's workflow, because NODE_ENV
+      # belongs on the build alone: `npm ci` under NODE_ENV=production skips
+      # devDependencies, which is where the whole vite toolchain lives.
+      - name: Install care_fe dependencies
+        working-directory: care_fe
+        run: npm ci --prefer-offline
+
       - name: Build care_fe
         working-directory: care_fe
         env:
           NODE_ENV: production
-        run: |
-          npm ci --prefer-offline
-          npm run build
+        run: npm run build
 
       # care_fe's own suite starts this through playwright.config.ts webServer. Here the
       # webServer slot belongs to the plugin's preview, so the host is started by hand and

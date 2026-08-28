@@ -2,11 +2,13 @@ import { createElement } from "react";
 
 import CareIcon from "@/CAREUI/icons/CareIcon";
 
+import publicRoutes from "./publicRoutes";
 import routes from "./routes";
 
 const manifest = {
   plugin: "care_im_wrapper",
   routes,
+  publicRoutes,
   extends: [],
   components: {},
   devices: [],

@@ -1,0 +1,220 @@
+name: Playwright Tests
+
+# Ported from care_fe's .github/workflows/playwright.yaml. The plugin has no UI of its own,
+# so a run needs four things standing up together:
+#
+#   care backend (:9000)  with care_im_wrapper installed and fixtures loaded
+#   care_fe      (:4000)  the host that mounts the federated remote
+#   this plugin  (:10120) serving remoteEntry.js, started by Playwright's webServer
+#   seeded data           the trigger and two templates the specs file their events under
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24"
+
+  CARE_REF: develop
+  CARE_FE_REF: develop
+  PLUGIN_BACKEND_REF: develop
+
+  REACT_CARE_API_URL: http://localhost:9000
+  CARE_FE_URL: http://localhost:4000
+  PLUGIN_URL: http://localhost:10120
+
+  # tests/helper/seed.ts and tests/globalTeardown.ts shell into these containers by name.
+  CARE_BACKEND_CONTAINER: care-backend-1
+  CARE_CELERY_CONTAINER: care-celery-1
+
+  # Read when building the image (install_plugins.py) and again at runtime (INSTALLED_APPS).
+  # The WhatsApp values are placeholders: the plugin's settings refuse to import without
+  # them, and the API URL is a reserved TLD that cannot resolve.
+  ADDITIONAL_PLUGS: >-
+    [{"name":"care_im_wrapper","package_name":"/app/care_im_wrapper","version":"","configs":{"WHATSAPP_API_URL":"https://graph.invalid/v25.0","WHATSAPP_ACCESS_TOKEN":"ci-placeholder-token","WHATSAPP_PHONE_NUMBER_ID":"ci-placeholder-phone-id","WHATSAPP_BUSINESS_ACCOUNT_ID":"ci-placeholder-waba-id","WHATSAPP_WEBHOOK_VERIFY_TOKEN":"ci-placeholder-verify-token","WHATSAPP_APP_SECRET":"ci-placeholder-app-secret"}}]
+
+  COMPOSE_FILE: docker-compose.yaml:docker-compose.local.yaml
+
+jobs:
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the plugin
+        uses: actions/checkout@v5
+
+      - name: Check out care
+        uses: actions/checkout@v5
+        with:
+          repository: ohcnetwork/care
+          ref: ${{ env.CARE_REF }}
+          path: care
+
+      # Carries seed_notification_test_data, and must sit inside the care checkout, which
+      # becomes /app in the image.
+      - name: Check out the plugin backend inside care
+        uses: actions/checkout@v5
+        with:
+          repository: 8sami/care_im_wrapper
+          ref: ${{ env.PLUGIN_BACKEND_REF }}
+          path: care/care_im_wrapper
+
+      - name: Check out care_fe
+        uses: actions/checkout@v5
+        with:
+          repository: ohcnetwork/care_fe
+          ref: ${{ env.CARE_FE_REF }}
+          path: care_fe
+
+      - name: Configure the backend
+        working-directory: care
+        run: |
+          {
+            echo "DISABLE_RATELIMIT=True"
+            echo "JWKS_BASE64=\"$(cat ../care_fe/.github/runner-files/jwks.b64.txt)\""
+            echo "ADDITIONAL_PLUGS=$ADDITIONAL_PLUGS"
+          } >> docker/.local.env
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the care dev image
+        uses: docker/build-push-action@v6
+        with:
+          context: care
+          file: care/docker/dev.Dockerfile
+          tags: care_local
+          load: true
+          build-args: ADDITIONAL_PLUGS=${{ env.ADDITIONAL_PLUGS }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start care and load fixtures
+        working-directory: care
+        run: make docker_config_file=docker-compose.local.yaml up load-fixtures
+
+      # Non-negotiable. The suite creates notification events, and care_im_wrapper sweeps
+      # pending recipients every ~2 minutes and dispatches them for real, to the real phone
+      # numbers in the fixture data. tests/globalSetup.ts refuses to start while it is up.
+      - name: Stop the celery worker
+        working-directory: care
+        run: docker compose stop celery
+
+      # Templates only ever arrive from the provider, so without this the specs have nothing
+      # to act on.
+      - name: Seed the notification trigger and templates
+        working-directory: care
+        run: docker compose exec -T backend python manage.py seed_notification_test_data
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            care_fe/package-lock.json
+
+      # NODE_ENV belongs on the build alone: `npm ci` under NODE_ENV=production skips
+      # devDependencies, where the vite toolchain lives.
+      - name: Install care_fe dependencies
+        working-directory: care_fe
+        run: npm ci --prefer-offline
+
+      - name: Build care_fe
+        working-directory: care_fe
+        env:
+          NODE_ENV: production
+        run: npm run build
+
+      # playwright.config.ts points webServer at the plugin's preview, so the host is
+      # started here instead.
+      - name: Serve care_fe
+        working-directory: care_fe
+        run: |
+          nohup npm run preview -- --port 4000 > "$RUNNER_TEMP/care_fe-preview.log" 2>&1 &
+          for _ in $(seq 1 60); do
+            if curl -sSf "$CARE_FE_URL" > /dev/null; then
+              echo "care_fe is answering at $CARE_FE_URL"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::care_fe did not answer at $CARE_FE_URL within 120s"
+          cat "$RUNNER_TEMP/care_fe-preview.log"
+          exit 1
+
+      # The suite runs against dist/.
+      - name: Build the plugin
+        run: |
+          npm ci --prefer-offline
+          npm run build
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}-${{ hashFiles('playwright.config.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # Run as its own command, which is why the chromium project declares no dependency on
+      # it under CI. Selecting `setup` also runs `auth`, through the dependency edge.
+      - name: Run setup projects
+        env:
+          NODE_ENV: production
+        run: npx playwright test --project=setup --workers=1
+
+      # Serial: the specs share one backend's templates and seeded events.
+      - name: Run E2E tests
+        id: test
+        env:
+          NODE_ENV: production
+        run: npx playwright test --project=chromium --workers=1
+
+      # A run that matched no tests exits 0 and looks identical to a passing one.
+      - name: Check the suite actually ran
+        run: |
+          total=$(jq '[.. | objects | select(has("tests")) | .tests[]] | length' test-results.json)
+          passed=$(jq '[.. | objects | select(has("tests")) | .tests[]
+                        | select(.results[-1].status == "passed")] | length' test-results.json)
+          echo "Playwright reported $passed/$total test(s) passed" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$total" -eq 0 ]; then
+            echo "::error::The chromium project matched no tests"
+            exit 1
+          fi
+          echo "$passed/$total test(s) passed"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            playwright-report/
+            test-results/
+            test-results.json
+          retention-days: 7
+
+      # globalTeardown does this after a run that finishes; this covers the runs that do
+      # not, which would otherwise leave recipients for the sweep to send.
+      - name: Clear seeded notification events
+        if: always()
+        working-directory: care
+        run: docker compose exec -T backend python manage.py seed_notification_test_data --reset || true
+
+      - name: Stop care
+        if: always()
+        working-directory: care
+        run: make docker_config_file=docker-compose.local.yaml down || true

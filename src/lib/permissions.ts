@@ -7,8 +7,6 @@ export const PERMISSION_READ_NOTIFICATION_TEMPLATE =
 export const PERMISSION_MANAGE_NOTIFICATION_TEMPLATE =
   "can_manage_notification_template";
 export const PERMISSION_READ_NOTIFICATION_EVENT = "can_read_notification_event";
-export const PERMISSION_CREATE_NOTIFICATION_EVENT =
-  "can_create_notification_event";
 export const PERMISSION_DISPATCH_NOTIFICATION_EVENT =
   "can_dispatch_notification_event";
 
@@ -16,7 +14,6 @@ export type NotificationPermission =
   | typeof PERMISSION_READ_NOTIFICATION_TEMPLATE
   | typeof PERMISSION_MANAGE_NOTIFICATION_TEMPLATE
   | typeof PERMISSION_READ_NOTIFICATION_EVENT
-  | typeof PERMISSION_CREATE_NOTIFICATION_EVENT
   | typeof PERMISSION_DISPATCH_NOTIFICATION_EVENT;
 
 export function hasPermission(

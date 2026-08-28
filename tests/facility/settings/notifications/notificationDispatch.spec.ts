@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
-import type { APIRequestContext, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { seedEvent } from "tests/helper/seed";
 import { expectToast } from "tests/helper/ui";
-import { getApiHeaders, getApiUrl } from "tests/helper/utils";
 import { getFacilityId } from "tests/support/facilityId";
 
 test.use({ storageState: "tests/.auth/user.json" });
@@ -12,55 +12,6 @@ test.beforeAll(() => {
   facilityId = getFacilityId();
 });
 
-const MANUAL_TRIGGER_SLUG = "e2e_manual_notification";
-const ACTIVE_TEMPLATE_SLUG = "e2e_active_template";
-
-/**
- * Creates an event straight through the API — the create form is covered by its own spec, and
- * going through it here would make every dispatch test depend on that flow still working.
- *
- * `withRecipient: false` produces an event with nothing to send, which is how the "nothing
- * pending" states are reached without touching the database.
- */
-async function createEvent(
-  request: APIRequestContext,
-  title: string,
-  { withRecipient = true }: { withRecipient?: boolean } = {},
-): Promise<string> {
-  let recipientIds: string[] = [];
-
-  if (withRecipient) {
-    const patients = await request.get(
-      `${getApiUrl()}/api/v1/patient/?limit=1`,
-      {
-        headers: getApiHeaders(),
-      },
-    );
-    expect(patients.ok(), "could not read a patient to notify").toBeTruthy();
-    recipientIds = [(await patients.json()).results[0].id];
-  }
-
-  const response = await request.post(
-    `${getApiUrl()}/api/care_im_wrapper/notification-events/`,
-    {
-      headers: getApiHeaders(),
-      data: {
-        title,
-        trigger_slug: MANUAL_TRIGGER_SLUG,
-        template_slug: ACTIVE_TEMPLATE_SLUG,
-        facility: facilityId,
-        recipient_patient_ids: recipientIds,
-      },
-    },
-  );
-  expect(
-    response.ok(),
-    `could not seed an event: ${response.status()} ${await response.text()}`,
-  ).toBeTruthy();
-
-  return (await response.json()).id;
-}
-
 function confirmDialog(page: Page) {
   return page.getByRole("alertdialog");
 }
@@ -68,10 +19,9 @@ function confirmDialog(page: Page) {
 test.describe("dispatch notification event", () => {
   test("dispatches pending recipients from the detail page", async ({
     page,
-    request,
   }) => {
     const title = `Dispatch detail ${Date.now()}`;
-    const eventId = await createEvent(request, title);
+    const eventId = seedEvent(title, facilityId);
 
     await page.goto(
       `/facility/${facilityId}/settings/notifications/${eventId}`,
@@ -98,12 +48,9 @@ test.describe("dispatch notification event", () => {
     });
   });
 
-  test("offers no dispatch when nothing is pending", async ({
-    page,
-    request,
-  }) => {
+  test("offers no dispatch when nothing is pending", async ({ page }) => {
     const title = `Nothing pending ${Date.now()}`;
-    const eventId = await createEvent(request, title, { withRecipient: false });
+    const eventId = seedEvent(title, facilityId, { withRecipient: false });
 
     await test.step("the detail page's button is disabled", async () => {
       await page.goto(

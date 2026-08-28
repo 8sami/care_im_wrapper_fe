@@ -1,0 +1,28 @@
+# Dispatch a notification
+
+Needs `can_dispatch_notification_event`. Facility admins have it; nurses do not.
+
+## Where events come from
+
+You do not create events by hand. Each one is filed by a backend signal handler when the
+thing it watches happens — a booking is confirmed, an invoice is issued, a report is ready.
+They appear under **Notifications** in the facility sidebar as soon as they fire, with their
+recipients sitting at *pending*.
+
+## Send it
+
+On the detail page, press **Dispatch N pending** and confirm. The count in the dialog is how many messages will go out.
+
+You can also dispatch from the list: row menu → **Dispatch**.
+
+Either way the response is immediate and the sending happens in the background — the toast reports how many were queued, not how many arrived.
+
+## Watch delivery
+
+The recipients table shows each person's latest status: pending, sent, delivered, read, or failed. The page refreshes itself while anything is unsettled.
+
+For a failure, **See error** shows the provider's raw response — usually the fastest way to tell a bad phone number from a rejected template.
+
+## If you never press Dispatch
+
+It still sends. A background sweep picks up any pending recipient every couple of minutes. The Dispatch button controls *when*, not *whether*.

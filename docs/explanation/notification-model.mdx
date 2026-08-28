@@ -8,10 +8,7 @@ Trigger  ──┐
 Template ──┘
 ```
 
-**Trigger** — why a message is being sent. Two types:
-
-- `signal` — fired by CARE itself (appointment booked, document ready). Seeded by migrations.
-- `manual` — a staff member sending something by hand. The create form only offers these; the backend rejects a signal trigger on that endpoint.
+**Trigger** — why a message is being sent. Every trigger is a `signal`: fired by CARE itself (appointment booked, document ready), and seeded by migrations. Nothing creates an event by hand.
 
 **Template** — the provider-approved message. Templates are pulled from the provider by a sync; you cannot write one in CARE. Each has an approval status and an active flag, and only active ones can be picked.
 
@@ -25,13 +22,13 @@ A template body contains variables: `Hello {{patient_name}}, your appointment is
 
 The mapping says where each value comes from — a Jinja2 expression evaluated against the event's context, e.g. `{{ object.token_slot.start_datetime|date('%d %b %Y') }}`. Every variable needs one.
 
-Signal triggers have a context (a booking, a patient), so the mapping can reach into it, and the available-fields picker lists what's there. A manual trigger has no related object, so its picker is empty.
+A trigger names the context its events carry (a booking, a patient), so the mapping can reach into it and the available-fields picker lists what's there. A trigger with no context declared has an empty picker.
 
 ## Facility scoping
 
-An event belongs to one facility. A signal event derives it from its related object. A manual event has no related object, so the create form sends `facility` explicitly.
+An event belongs to one facility, derived from its related object when it is saved.
 
-This matters more than it looks: the event list is filtered by facility, and authorization resolves permissions through the event's facility. An event with no facility is invisible in the list and readable only by a superuser — and re-saving cannot fix it, because the facility is recomputed on every save.
+This matters more than it looks: the event list is filtered by facility, and authorization resolves permissions through the event's facility. An event with no facility is invisible in the list and readable only by a superuser. `save()` recomputes the facility only when a related object is present, so an event created without one keeps the facility it was given.
 
 ## Sending is asynchronous
 

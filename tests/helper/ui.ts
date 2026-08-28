@@ -3,9 +3,8 @@ import { Page, expect } from "@playwright/test";
 // Ported from care_fe's tests/helper/ui.ts. Only the three helpers this plugin's screens
 // actually need are here.
 //
-// care_fe's selectFromCommand is deliberately NOT ported: it clicks a trigger and waits for
-// a popover or dialog to open, and RecipientPicker renders an always-open inline <Command>
-// with no trigger at all. Its specs drive the picker directly instead.
+// care_fe's selectFromCommand is deliberately NOT ported: no screen here renders a
+// <Command> behind a trigger for it to open.
 
 /**
  * Asserts a toast with the given text is visible. The toaster belongs to care_fe -- the

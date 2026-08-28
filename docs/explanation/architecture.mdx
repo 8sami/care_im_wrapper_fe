@@ -31,7 +31,7 @@ So `BadgeVariant`, `NotificationEvent`, `FacilityRead` and friends are shape-mat
 
 care_fe derives an i18next namespace from the plugin's registered `meta.name` and fetches `{plugin origin}/locale/{lang}.json`. `src/hooks/useTranslation.ts` reads the `care_im_wrapper` namespace.
 
-If `meta.name` is registered as anything other than `care_im_wrapper`, every screen renders raw keys — `new_notification` instead of "New notification". Nothing errors.
+If `meta.name` is registered as anything other than `care_im_wrapper`, every screen renders raw keys — `notifications` instead of "Notifications". Nothing errors.
 
 ## Config injection
 

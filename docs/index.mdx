@@ -2,7 +2,7 @@
 
 The frontend half of `care_im_wrapper`. It adds two things to CARE:
 
-- **Notifications** (per facility) — staff create a notification, pick patients or colleagues, and send it as a templated WhatsApp message. `/facility/{id}/settings/notifications`
+- **Notifications** (per facility) — follow the notifications the backend fires for a facility, dispatch the ones still pending, and watch delivery. `/facility/{id}/settings/notifications`
 - **Notification templates** (admin) — sync the provider's approved templates, activate the ones you want, and map each template variable to a value. `/admin/notification-templates`
 
 It is a module-federation plugin. It has no UI of its own; care_fe loads it at runtime and mounts its routes.
@@ -12,6 +12,7 @@ It is a module-federation plugin. It has no UI of its own; care_fe loads it at r
 | You want to | Go to |
 | --- | --- |
 | Get it running and send one message | [tutorial/first-notification](./tutorial/first-notification.mdx) |
+| Dispatch a notification and watch delivery | [how-to/dispatch-a-notification](./how-to/dispatch-a-notification.mdx) |
 | Install it into a care_fe deployment | [how-to/register-the-plugin](./how-to/register-the-plugin.mdx) |
 | Look up a route, endpoint, config key or permission | [routes](./reference/routes.mdx), [api](./reference/api.mdx), [configuration](./reference/configuration.mdx), [permissions](./reference/permissions.mdx) |
 | Understand why it's built this way | [explanation/architecture](./explanation/architecture.mdx) |

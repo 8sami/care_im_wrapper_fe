@@ -13,11 +13,8 @@
  * Attachments follow care_fe exactly: react-pdf rasterises every page of a PDF so it
  * prints inline with the report, and images render after them, each starting a new page.
  *
- * i18n: these vendored files import `useTranslation` from react-i18next directly rather
- * than this plug's `@/hooks/useTranslation`. That is deliberate — the labels here ("test",
- * "reference_range", "conclusion" …) are care_fe's own keys and live in the host's default
- * namespace, whereas the plug's hook scopes lookups to the `care_im_wrapper` namespace and
- * would miss every one of them.
+ * Uses react-i18next directly, not this plug's namespaced `useTranslation`: these labels
+ * are care_fe's own keys, in the host's default namespace.
  */
 import { format } from "date-fns";
 import { useState } from "react";

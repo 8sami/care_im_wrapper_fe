@@ -101,24 +101,40 @@ function FacilityInfo({ facility }: { facility: DocumentFacility }) {
   );
 }
 
+/** care_fe's configured mainLogo, which the host publishes on window.__CORE_ENV__. */
+function coreLogoUrl(): string | undefined {
+  const mainLogo = window.__CORE_ENV__?.mainLogo as
+    | { dark?: string; light?: string }
+    | undefined;
+  return mainLogo?.dark ?? mainLogo?.light;
+}
+
 function FacilityLogo({ logo }: { logo?: LogoConfig }) {
   const logoUrl = logo?.url || undefined;
-  if (!logoUrl) return null;
+  // Same fallback as care_fe: a facility with no mark of its own still shows the CARE
+  // logo, so the header is never logo-less. Reading it from the host's config rather
+  // than hardcoding a path keeps a REACT_MAIN_LOGO override working.
+  const src = logoUrl ?? coreLogoUrl();
+  if (!src) return null;
 
-  const hasCustomDims = !!(logo?.width || logo?.height);
+  const hasCustomDims = !!(logoUrl && (logo?.width || logo?.height));
 
   return (
     <img
-      src={logoUrl}
-      alt="Facility brand mark"
+      src={src}
+      alt={logoUrl ? "Facility brand mark" : "Care Logo"}
       className={cn(
         "mb-2 object-contain sm:mb-0",
         !hasCustomDims && "h-10 w-auto",
       )}
-      style={{
-        ...(logo?.width ? { width: `${logo.width}px` } : {}),
-        ...(logo?.height ? { height: `${logo.height}px` } : {}),
-      }}
+      style={
+        logoUrl
+          ? {
+              ...(logo?.width ? { width: `${logo.width}px` } : {}),
+              ...(logo?.height ? { height: `${logo.height}px` } : {}),
+            }
+          : undefined
+      }
     />
   );
 }
